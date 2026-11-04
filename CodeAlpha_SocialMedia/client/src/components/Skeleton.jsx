@@ -7,6 +7,11 @@ export function SkeletonPost() {
       </div>
       <span className="skeleton bar" />
       <span className="skeleton bar short" />
+      <div className="skeleton-actions">
+        <span className="skeleton" />
+        <span className="skeleton" />
+        <span className="skeleton" />
+      </div>
     </article>
   );
 }

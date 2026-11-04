@@ -32,6 +32,7 @@ export default function ProjectList() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [workLoaded, setWorkLoaded] = useState(false);
+  const [dialogEntered, setDialogEntered] = useState(false);
 
   useEffect(() => {
     setTitle('Projects');
@@ -55,6 +56,15 @@ export default function ProjectList() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setDialogEntered(false);
+      return undefined;
+    }
+    const frame = requestAnimationFrame(() => setDialogEntered(true));
+    return () => cancelAnimationFrame(frame);
   }, [open]);
 
   async function createProject(event) {
@@ -135,7 +145,7 @@ export default function ProjectList() {
       </section>
 
       {open && (
-        <div className="dialog-back" onMouseDown={() => setOpen(false)}>
+        <div className={`dialog-back${dialogEntered ? ' open' : ''}`} onMouseDown={() => setOpen(false)}>
           <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="new-project-title" onMouseDown={(event) => event.stopPropagation()}>
             <h2 id="new-project-title">New project</h2>
             <form onSubmit={createProject}>

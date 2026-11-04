@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { money } from '../utils';
+import { bindImgFade, money, onImgLoad } from '../utils';
 
 const REVIEWS = [
   {
@@ -173,7 +173,7 @@ export default function Home() {
                 aria-hidden={index !== slide}
                 tabIndex={index === slide ? 0 : -1}
               >
-                <img src={product.image} alt={product.name} />
+                <img ref={bindImgFade} className="img-fade" src={product.image} alt={product.name} onLoad={onImgLoad} />
                 <span>
                   {product.name}
                   <strong>{money(product.price)}</strong>
@@ -265,7 +265,7 @@ export default function Home() {
               style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
             >
               <div className="card-media">
-                <img src={product.image} alt="" />
+                <img ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
                 <button
                   type="button"
                   className="quick-add"

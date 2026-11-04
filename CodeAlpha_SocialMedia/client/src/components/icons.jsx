@@ -86,3 +86,32 @@ export function IconSearch() {
     </svg>
   );
 }
+
+export function IconBell() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 3.5a4.2 4.2 0 0 0-4.2 4.2v2.4c0 .9-.3 1.8-.9 2.5L5.8 15.2A1.2 1.2 0 0 0 6.9 17h10.2a1.2 1.2 0 0 0 1.1-1.8l-1.1-2.6a3.5 3.5 0 0 1-.9-2.5V7.7A4.2 4.2 0 0 0 12 3.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M10 17a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconBookmark({ filled = false }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M7 4.5h10a1.5 1.5 0 0 1 1.5 1.5v14.2a.8.8 0 0 1-1.2.7L12 18.2l-5.3 2.7a.8.8 0 0 1-1.2-.7V6a1.5 1.5 0 0 1 1.5-1.5Z"
+        fill={filled ? 'currentColor' : 'none'}
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

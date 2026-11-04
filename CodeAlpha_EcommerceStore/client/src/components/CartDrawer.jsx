@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import QtyStepper from './QtyStepper';
 import { useCart } from '../context/CartContext';
-import { money } from '../utils';
+import { bindImgFade, money, onImgLoad } from '../utils';
 
 export default function CartDrawer() {
   const { cart, drawerOpen, closeDrawer, setQty, removeItem } = useCart();
@@ -37,11 +37,16 @@ export default function CartDrawer() {
             Close
           </button>
         </header>
-        {items.length === 0 && <p className="muted">Nothing here yet. Add a piece from the shop.</p>}
+        {items.length === 0 && (
+          <div className="drawer-empty">
+            <p>Nothing here yet.</p>
+            <p className="hint">Add a piece from the shop to see it here.</p>
+          </div>
+        )}
         <ul className="drawer-list">
           {items.map((item) => (
             <li key={item.product._id}>
-              <img src={item.product.image} alt="" />
+              <img ref={bindImgFade} className="img-fade" src={item.product.image} alt="" onLoad={onImgLoad} />
               <div>
                 <Link to={`/products/${item.product._id}`} onClick={closeDrawer}>
                   <strong>{item.product.name}</strong>

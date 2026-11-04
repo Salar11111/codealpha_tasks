@@ -72,10 +72,14 @@ function TaskCard({ task, onOpen, skipOpenRef }) {
   );
 }
 
-function Column({ column, tasks, onOpen, skipOpenRef, composer, onCreate, filtering }) {
+function Column({ column, tasks, onOpen, skipOpenRef, composer, onCreate, filtering, columnIndex }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   return (
-    <section ref={setNodeRef} className={isOver ? 'column over' : 'column'}>
+    <section
+      ref={setNodeRef}
+      className={isOver ? 'column over' : 'column'}
+      style={{ '--col-i': columnIndex }}
+    >
       <header>
         <h2>
           <i className={`status-dot ${column.id}`} aria-hidden="true" />
@@ -180,6 +184,7 @@ export default function Board() {
   const [draft, setDraft] = useState({ name: '', description: '' });
   const [editError, setEditError] = useState('');
   const [editBusy, setEditBusy] = useState(false);
+  const [editEntered, setEditEntered] = useState(false);
   const [liveComment, setLiveComment] = useState(null);
   const tasksRef = useRef([]);
   const skipOpen = useRef(false);
@@ -333,6 +338,15 @@ export default function Board() {
     return () => window.removeEventListener('keydown', onKey);
   }, [editing]);
 
+  useEffect(() => {
+    if (!editing) {
+      setEditEntered(false);
+      return undefined;
+    }
+    const frame = requestAnimationFrame(() => setEditEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, [editing]);
+
   function noteComment(payload) {
     const commentId = payload?.comment?._id;
     if (commentId && seenComments.current.has(String(commentId))) {
@@ -482,9 +496,11 @@ export default function Board() {
           </div>
           <p className="muted lede">{project.description || 'No description yet.'}</p>
           {activities.length > 0 && (
-            <ul className="activity">
-              {activities.slice(0, 6).map((item) => (
-                <li key={item._id}>{item.message}</li>
+            <ul className="activity-trail" aria-label="Recent activity">
+              {activities.slice(0, 6).map((item, index) => (
+                <li key={item._id} style={{ '--i': index }}>
+                  {item.message}
+                </li>
               ))}
             </ul>
           )}
@@ -562,7 +578,7 @@ export default function Board() {
             Clear
           </button>
         )}
-        {filtering && <span className="muted">{filtered.length} shown</span>}
+        {filtering && <span className="muted filter-meta">{filtered.length} shown</span>}
         <div className="view-toggle">
           <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>
             <LayoutGrid size={16} aria-hidden="true" /> Board
@@ -587,10 +603,11 @@ export default function Board() {
           onDragEnd={onDragEnd}
         >
           <div className="board">
-            {COLUMNS.map((column) => (
+            {COLUMNS.map((column, columnIndex) => (
               <Column
                 key={column.id}
                 column={column}
+                columnIndex={columnIndex}
                 tasks={filtered.filter((task) => task.column === column.id).sort((a, b) => a.position - b.position)}
                 onOpen={openTask}
                 skipOpenRef={skipOpen}
@@ -628,7 +645,7 @@ export default function Board() {
         />
       )}
       {editing && (
-        <div className="dialog-back" onMouseDown={() => setEditing(false)}>
+        <div className={`dialog-back${editEntered ? ' open' : ''}`} onMouseDown={() => setEditing(false)}>
           <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-project-title" onMouseDown={(event) => event.stopPropagation()}>
             <h2 id="edit-project-title">Edit project</h2>
             <form onSubmit={saveDetails}>

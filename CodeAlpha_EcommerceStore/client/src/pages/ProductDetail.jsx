@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import QtyStepper from '../components/QtyStepper';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { money } from '../utils';
+import { bindImgFade, money, onImgLoad } from '../utils';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -109,7 +109,7 @@ export default function ProductDetail() {
     <article>
       <div className="product">
         <div className="product-photo reveal">
-          <img src={product.image} alt={product.name} />
+          <img ref={bindImgFade} className="img-fade" src={product.image} alt={product.name} onLoad={onImgLoad} />
         </div>
         <div className="product-buy">
           <Link to={`/?category=${encodeURIComponent(product.category)}`} className="back">
@@ -189,7 +189,7 @@ export default function ProductDetail() {
             {related.map((item) => (
               <Link to={`/products/${item._id}`} className="card" key={item._id}>
                 <div className="card-media">
-                  <img src={item.image} alt="" />
+                  <img ref={bindImgFade} className="img-fade" src={item.image} alt="" onLoad={onImgLoad} />
                 </div>
                 <div className="card-body">
                   <p className="eyebrow">{item.category}</p>
@@ -206,7 +206,7 @@ export default function ProductDetail() {
       )}
 
       <div className={showBar ? 'buy-bar on' : 'buy-bar'} hidden={!showBar}>
-        <img src={product.image} alt="" />
+        <img ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
         <div>
           <strong>{product.name}</strong>
           <span>{money(product.price)}</span>

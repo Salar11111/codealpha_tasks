@@ -4,11 +4,13 @@ Northline is a small-goods shop built for the CodeAlpha full-stack internship. S
 
 Buyers who have ordered a product can leave one review. A signed-in shopper can save items to a wishlist, and checkout remembers the shipping address. Stock of five or fewer shows as “Only N left.” An admin can add or hide products and mark an order shipped.
 
+The UI uses a cool sage/forest palette (Fraunces + Outfit), scroll-friendly product reveals, image fade-in, and a sticky cart drawer that works on phone and desktop.
+
 ## Screenshots
 
-![Northline catalog, with the fountain pen marked only 4 left](docs/shop.png)
+![Northline catalog grid with low-stock fountain pen](docs/shop.png)
 
-![Stoneware mug page with a buyer review and the wishlist button](docs/product.png)
+![Stoneware mug product page with reviews and add to cart](docs/product.png)
 
 ## Task checklist
 

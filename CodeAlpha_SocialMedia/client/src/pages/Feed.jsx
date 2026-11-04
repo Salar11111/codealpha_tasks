@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,7 @@ export default function Feed() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const fileRef = useRef(null);
 
   useEffect(() => {
     api('/posts/feed')
@@ -21,6 +22,11 @@ export default function Feed() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  function clearFile() {
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+  }
 
   async function publish(event) {
     event.preventDefault();
@@ -33,7 +39,7 @@ export default function Feed() {
       const data = await api('/posts', { method: 'POST', body });
       setPosts((current) => [data.post, ...current]);
       setText('');
-      setFile(null);
+      clearFile();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -52,26 +58,36 @@ export default function Feed() {
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="What's happening?"
+            placeholder="Share something worth reading…"
             maxLength={500}
             aria-label="Write a post"
             required={!file}
           />
         </div>
-        <div className="row">
-          <label className="text-btn">
-            Photo
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              hidden
-              onChange={(event) => setFile(event.target.files?.[0] || null)}
-            />
-          </label>
-          <span className="muted">{file ? file.name : `${text.length}/500`}</span>
-          <button className="btn" type="submit" disabled={busy || (!text.trim() && !file)}>
-            {busy ? 'Posting…' : 'Post'}
-          </button>
+        <div className="composer-foot">
+          <div className="composer-tools">
+            <label className={`file-pick${file ? ' has-file' : ''}`}>
+              Photo
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                hidden
+                onChange={(event) => setFile(event.target.files?.[0] || null)}
+              />
+            </label>
+            {file && (
+              <button type="button" className="text-btn" onClick={clearFile}>
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="composer-meta">
+            <span className="muted counter">{file ? file.name : `${text.length}/500`}</span>
+            <button className="btn" type="submit" disabled={busy || (!text.trim() && !file)}>
+              {busy ? 'Posting…' : 'Post'}
+            </button>
+          </div>
         </div>
       </form>
       {error && (

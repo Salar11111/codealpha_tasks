@@ -14,6 +14,7 @@ export default function TaskDialog({ task, members, liveComment, onClose, onTask
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const chain = useRef(Promise.resolve());
+  const [entered, setEntered] = useState(false);
   const labels = task.labels || [];
   const checklist = task.checklist || [];
 
@@ -30,6 +31,11 @@ export default function TaskDialog({ task, members, liveComment, onClose, onTask
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!liveComment || String(liveComment.taskId) !== String(task._id)) return;
@@ -122,9 +128,9 @@ export default function TaskDialog({ task, members, liveComment, onClose, onTask
   }
 
   return (
-    <div className="drawer-back" onMouseDown={onClose}>
+    <div className={`drawer-back${entered ? ' open' : ''}`} onMouseDown={onClose}>
       <aside
-        className="drawer"
+        className={`drawer${entered ? ' open' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="task-heading"

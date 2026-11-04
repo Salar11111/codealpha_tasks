@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
-import { IconHome, IconPeople, IconUser } from './icons';
+import { IconBell, IconBookmark, IconHome, IconPeople, IconUser } from './icons';
 import Suggestions from './Suggestions';
 
 function navClass({ isActive }) {
@@ -22,6 +22,7 @@ function PrimaryLinks({ user }) {
         <span>People</span>
       </NavLink>
       <NavLink to="/saved" className={navClass}>
+        <IconBookmark />
         <span>Saved</span>
       </NavLink>
       <NavLink to={`/u/${user.username}`} className={navClass}>
@@ -29,6 +30,35 @@ function PrimaryLinks({ user }) {
         <span>Profile</span>
       </NavLink>
     </>
+  );
+}
+
+function AlertsPanel({ notes, onClose }) {
+  return (
+    <div className="card alerts-panel" role="dialog" aria-label="Alerts" aria-modal="true">
+      <div className="alerts-head">
+        <h2>Alerts</h2>
+        <button type="button" className="text-btn" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      {notes.length === 0 ? (
+        <div className="alerts-empty">
+          <p className="muted">No alerts yet. Likes, follows, and replies will land here.</p>
+        </div>
+      ) : (
+        <ul className="alerts-list">
+          {notes.map((note) => (
+            <li key={note._id} className={note.read ? 'alert-item' : 'alert-item unread'}>
+              <p>{note.text}</p>
+              {note.actor?.username && (
+                <span className="muted alert-meta">@{note.actor.username}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -54,9 +84,27 @@ export default function Layout() {
     return () => clearInterval(timer);
   }, [user]);
 
-  async function openBell() {
-    setOpenNotes((current) => !current);
-    if (unread > 0) {
+  useEffect(() => {
+    if (!openNotes) return undefined;
+    function onPointerDown(event) {
+      if (event.target.closest('.alerts-wrap')) return;
+      setOpenNotes(false);
+    }
+    function onKeyDown(event) {
+      if (event.key === 'Escape') setOpenNotes(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openNotes]);
+
+  async function toggleAlerts() {
+    const next = !openNotes;
+    setOpenNotes(next);
+    if (next && unread > 0) {
       await api('/notifications/read', { method: 'POST' });
       setUnread(0);
       setNotes((current) => current.map((note) => ({ ...note, read: true })));
@@ -87,12 +135,30 @@ export default function Layout() {
         <Link to="/" className="brand">
           Lumen
         </Link>
-        <button type="button" className="text-btn" onClick={openBell}>
-          Alerts{unread > 0 ? ` (${unread})` : ''}
-        </button>
-        <button type="button" className="text-btn" onClick={logout}>
-          Log out
-        </button>
+        <div className="topbar-actions">
+          <div className="alerts-wrap alerts-wrap-mobile">
+            <button
+              type="button"
+              className="icon-btn alerts-trigger compact"
+              aria-expanded={openNotes}
+              aria-haspopup="dialog"
+              aria-label={unread > 0 ? `Alerts, ${unread} unread` : 'Alerts'}
+              onClick={() => toggleAlerts().catch(() => {})}
+            >
+              <IconBell />
+              {unread > 0 && <span className="badge">{unread > 9 ? '9+' : unread}</span>}
+            </button>
+            {openNotes && (
+              <>
+                <button type="button" className="alerts-backdrop" aria-label="Close alerts" onClick={() => setOpenNotes(false)} />
+                <AlertsPanel notes={notes} onClose={() => setOpenNotes(false)} />
+              </>
+            )}
+          </div>
+          <button type="button" className="text-btn" onClick={logout}>
+            Log out
+          </button>
+        </div>
       </header>
       <div className="app">
         <aside className="sidenav">
@@ -101,6 +167,22 @@ export default function Layout() {
           </Link>
           <nav className="nav-links" aria-label="Primary">
             <PrimaryLinks user={user} />
+            <div className="alerts-wrap alerts-wrap-desktop">
+              <button
+                type="button"
+                className="nav-link alerts-trigger"
+                aria-expanded={openNotes}
+                aria-haspopup="dialog"
+                onClick={() => toggleAlerts().catch(() => {})}
+              >
+                <IconBell />
+                <span>Alerts</span>
+                {unread > 0 && <span className="badge">{unread > 9 ? '9+' : unread}</span>}
+              </button>
+              {openNotes && (
+                <AlertsPanel notes={notes} onClose={() => setOpenNotes(false)} />
+              )}
+            </div>
           </nav>
           <div className="user-chip">
             <Avatar name={user.name} />
@@ -114,17 +196,6 @@ export default function Layout() {
           </div>
         </aside>
         <main className="column">
-          {openNotes && (
-            <section className="card">
-              <h2>Alerts</h2>
-              {notes.length === 0 && <p className="muted">No alerts yet.</p>}
-              {notes.map((note) => (
-                <p key={note._id}>
-                  {note.text} <span className="muted">{note.actor?.username ? `@${note.actor.username}` : ''}</span>
-                </p>
-              ))}
-            </section>
-          )}
           <Outlet />
         </main>
         <Suggestions />

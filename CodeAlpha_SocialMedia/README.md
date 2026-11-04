@@ -4,9 +4,11 @@ Lumen is a small social app for the CodeAlpha full-stack internship. Signed-in p
 
 A post can include one photo. Likes, comments, replies, and follows show up under Alerts. You can bookmark a post, see who liked it, reply to a comment, and open a profile’s followers and following lists.
 
+The UI uses an editorial slate/teal look (Instrument Serif + Sora), alert panel, like/bookmark spring motion, and a mobile bottom tab bar with safe-area padding.
+
 ## Screenshots
 
-![Lumen feed with a photo post, bookmarks, and a like count](docs/feed.png)
+![Lumen feed with composer, posts, and people suggestions](docs/feed.png)
 
 ## Task checklist
 

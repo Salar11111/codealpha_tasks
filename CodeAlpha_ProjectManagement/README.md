@@ -4,9 +4,11 @@ Keel is a small project board for the CodeAlpha full-stack internship. Members s
 
 The board keeps an activity list for moves, new cards, comments, and archive changes. Each card can hold a checklist. The owner can archive a finished project. Due-date and assignee filters are on the board.
 
+The UI uses a slate/brass workshop look (Source Serif brand + IBM Plex Sans), staggered board columns, a smoother task drawer, and a mobile sidebar drawer.
+
 ## Screenshots
 
-![Website launch board with the activity list and columns](docs/board.png)
+![Keel Website launch board with filters and columns](docs/board.png)
 
 ## Task checklist
 

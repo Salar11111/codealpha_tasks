@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { when } from '../utils';
 import Avatar from './Avatar';
-import { IconComment, IconHeart } from './icons';
+import { IconBookmark, IconComment, IconHeart } from './icons';
 
 export default function PostCard({ post, onChange, onDelete }) {
   const { user } = useAuth();
@@ -17,9 +17,16 @@ export default function PostCard({ post, onChange, onDelete }) {
   const [replyTo, setReplyTo] = useState(null);
   const [likers, setLikers] = useState(null);
   const [error, setError] = useState('');
+  const [likePop, setLikePop] = useState(false);
+  const [savePop, setSavePop] = useState(false);
   const mine = String(user?.id) === String(post.author?._id || post.author?.id);
 
   useEffect(() => setDraft(post.text), [post.text]);
+
+  function pulse(setter) {
+    setter(true);
+    window.setTimeout(() => setter(false), 420);
+  }
 
   async function loadComments() {
     const data = await api(`/posts/${post._id}/comments`);
@@ -31,6 +38,7 @@ export default function PostCard({ post, onChange, onDelete }) {
     setError('');
     try {
       const data = await api(`/posts/${post._id}/like`, { method: 'POST' });
+      if (data.post.liked) pulse(setLikePop);
       onChange(data.post);
     } catch (err) {
       setError(err.message);
@@ -61,6 +69,7 @@ export default function PostCard({ post, onChange, onDelete }) {
 
   async function bookmark() {
     const data = await api(`/posts/${post._id}/bookmark`, { method: 'POST' });
+    if (data.post.saved) pulse(setSavePop);
     onChange(data.post);
   }
 
@@ -96,6 +105,9 @@ export default function PostCard({ post, onChange, onDelete }) {
     setEditing(false);
   }
 
+  const likeClass = ['icon-btn', 'like', post.liked ? 'on' : '', likePop ? 'pop' : ''].filter(Boolean).join(' ');
+  const saveClass = ['icon-btn', 'bookmark', post.saved ? 'on' : '', savePop ? 'pop' : ''].filter(Boolean).join(' ');
+
   return (
     <article className="card post">
       <header className="post-head">
@@ -124,12 +136,16 @@ export default function PostCard({ post, onChange, onDelete }) {
       ) : (
         <p className="post-text">{post.text}</p>
       )}
-      {post.image && <img className="post-image" src={post.image} alt="" />}
+      {post.image && (
+        <div className="post-media">
+          <img className="post-image" src={post.image} alt="" loading="lazy" decoding="async" />
+        </div>
+      )}
       <div className="post-actions">
         <div className="action-group">
           <button
             type="button"
-            className={post.liked ? 'icon-btn on' : 'icon-btn'}
+            className={likeClass}
             aria-pressed={Boolean(post.liked)}
             aria-label={`${post.liked ? 'Unlike' : 'Like'}, ${post.likeCount} ${post.likeCount === 1 ? 'like' : 'likes'}`}
             onClick={like}
@@ -142,12 +158,13 @@ export default function PostCard({ post, onChange, onDelete }) {
           </button>
           <button
             type="button"
-            className={post.saved ? 'icon-btn on' : 'icon-btn'}
+            className={saveClass}
             aria-pressed={Boolean(post.saved)}
             aria-label={post.saved ? 'Remove bookmark' : 'Save post'}
             onClick={() => bookmark().catch((err) => setError(err.message))}
           >
-            {post.saved ? 'Saved' : 'Save'}
+            <IconBookmark filled={post.saved} />
+            <span>{post.saved ? 'Saved' : 'Save'}</span>
           </button>
           <button
             type="button"
@@ -191,7 +208,7 @@ export default function PostCard({ post, onChange, onDelete }) {
         </p>
       )}
       {likers && (
-        <p className="muted">
+        <p className="muted likers-pop">
           {likers.length === 0
             ? 'No likes yet.'
             : likers.map((person) => person.name).join(', ')}
