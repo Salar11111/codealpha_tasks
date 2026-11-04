@@ -3,18 +3,34 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { DndContext, PointerSensor, closestCorners, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { LayoutGrid, List, Search } from 'lucide-react';
+import { LayoutGrid, List, Plus, Search, X } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useWorkspace } from '../components/Layout';
 import TaskDialog from '../components/TaskDialog';
-import { AvatarStack, CommentCount, DueMark, PriorityMark } from '../components/Avatar';
+import { AvatarStack, ChecklistMark, CommentCount, DueMark, PriorityMark } from '../components/Avatar';
 import Avatar from '../components/Avatar';
 import { COLUMNS, PRIORITIES, applyMove, dateInputValue, dueState, filterTasks, labelColor } from '../utils';
 
 function AddCard({ onCreate }) {
+  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  if (!open) {
+    return (
+      <button type="button" className="add-card-trigger" onClick={() => setOpen(true)}>
+        <Plus size={16} aria-hidden="true" />
+        Add a card
+      </button>
+    );
+  }
+
   return (
     <form
       className="add-card"
@@ -23,12 +39,43 @@ function AddCard({ onCreate }) {
         if (!title.trim()) return;
         onCreate(title.trim());
         setTitle('');
+        inputRef.current?.focus();
       }}
     >
-      <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Add a card" aria-label="Card title" />
-      <button className="btn btn-small" type="submit">
-        Add
-      </button>
+      <textarea
+        ref={inputRef}
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        placeholder="Enter a title for this card…"
+        aria-label="Card title"
+        rows={2}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setOpen(false);
+            setTitle('');
+          }
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }
+        }}
+      />
+      <span className="add-card-actions">
+        <button className="btn btn-small" type="submit">
+          Add card
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Cancel"
+          onClick={() => {
+            setOpen(false);
+            setTitle('');
+          }}
+        >
+          <X size={16} />
+        </button>
+      </span>
     </form>
   );
 }
@@ -37,6 +84,10 @@ function TaskCard({ task, onOpen, skipOpenRef }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(task._id) });
   const style = { transform: CSS.Transform.toString(transform), transition };
   const labels = task.labels || [];
+  const hasFoot =
+    task.priority && task.priority !== 'none'
+      ? true
+      : Boolean(task.dueDate || task.commentCount || (task.checklist || []).length || (task.assignees || []).length);
 
   return (
     <article ref={setNodeRef} style={style} className={isDragging ? 'card dragging' : 'card'} {...listeners}>
@@ -49,30 +100,30 @@ function TaskCard({ task, onOpen, skipOpenRef }) {
         }}
       >
         {labels.length > 0 && (
-          <span className="card-labels">
-            {labels.slice(0, 2).map((label) => (
-              <span key={label} className="label" style={{ background: labelColor(label) }}>
-                {label}
-              </span>
+          <span className="card-labels" aria-label={`Labels: ${labels.join(', ')}`}>
+            {labels.map((label) => (
+              <span key={label} className="label-bar" style={{ background: labelColor(label) }} title={label} />
             ))}
-            {labels.length > 2 && <span className="label">+{labels.length - 2}</span>}
           </span>
         )}
         <h3>{task.title}</h3>
-        <span className="card-foot">
-          <span className="card-meta">
-            <PriorityMark priority={task.priority} />
-            <DueMark value={task.dueDate} column={task.column} />
-            <CommentCount count={task.commentCount} />
+        {hasFoot && (
+          <span className="card-foot">
+            <span className="card-meta">
+              <PriorityMark priority={task.priority} />
+              <DueMark value={task.dueDate} column={task.column} />
+              <ChecklistMark checklist={task.checklist} />
+              <CommentCount count={task.commentCount} />
+            </span>
+            <AvatarStack people={task.assignees || []} />
           </span>
-          <AvatarStack people={task.assignees || []} />
-        </span>
+        )}
       </button>
     </article>
   );
 }
 
-function Column({ column, tasks, onOpen, skipOpenRef, composer, onCreate, filtering, columnIndex }) {
+function Column({ column, tasks, onOpen, skipOpenRef, onCreate, filtering, columnIndex }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   return (
     <section
@@ -80,20 +131,22 @@ function Column({ column, tasks, onOpen, skipOpenRef, composer, onCreate, filter
       className={isOver ? 'column over' : 'column'}
       style={{ '--col-i': columnIndex }}
     >
-      <header>
+      <header className="column-head">
         <h2>
           <i className={`status-dot ${column.id}`} aria-hidden="true" />
           {column.label}
         </h2>
         <span className="count">{tasks.length}</span>
       </header>
-      {composer && <AddCard onCreate={onCreate} />}
-      <SortableContext items={tasks.map((task) => String(task._id))} strategy={verticalListSortingStrategy}>
-        {tasks.map((task) => (
-          <TaskCard key={task._id} task={task} onOpen={onOpen} skipOpenRef={skipOpenRef} />
-        ))}
-      </SortableContext>
-      {tasks.length === 0 && <p className="empty-col">{filtering ? 'No matches' : 'Nothing here'}</p>}
+      <div className="column-body">
+        <SortableContext items={tasks.map((task) => String(task._id))} strategy={verticalListSortingStrategy}>
+          {tasks.map((task) => (
+            <TaskCard key={task._id} task={task} onOpen={onOpen} skipOpenRef={skipOpenRef} />
+          ))}
+        </SortableContext>
+        {tasks.length === 0 && <p className="empty-col">{filtering ? 'No matches' : 'Drop cards here'}</p>}
+      </div>
+      <AddCard onCreate={onCreate} />
     </section>
   );
 }
@@ -378,10 +431,13 @@ export default function Board() {
     }
   }
 
-  async function createTask(title) {
+  async function createTask(title, column = 'todo') {
     setError('');
     try {
-      const data = await api(`/projects/${id}/tasks`, { method: 'POST', body: JSON.stringify({ title }) });
+      const data = await api(`/projects/${id}/tasks`, {
+        method: 'POST',
+        body: JSON.stringify({ title, column }),
+      });
       replaceTasks(data.tasks);
       refreshProjects();
     } catch (err) {
@@ -588,7 +644,7 @@ export default function Board() {
           </button>
         </div>
       </div>
-      {view === 'board' && <p className="hint">Drag a card to move it. Open a card to change the details, or use Move to.</p>}
+      {view === 'board' && <p className="hint">Drag cards between lists. Click a card for details.</p>}
       {error && <p className="error">{error}</p>}
       {view === 'board' ? (
         <DndContext
@@ -611,8 +667,7 @@ export default function Board() {
                 tasks={filtered.filter((task) => task.column === column.id).sort((a, b) => a.position - b.position)}
                 onOpen={openTask}
                 skipOpenRef={skipOpen}
-                composer={column.id === 'todo'}
-                onCreate={createTask}
+                onCreate={(title) => createTask(title, column.id)}
                 filtering={filtering}
               />
             ))}

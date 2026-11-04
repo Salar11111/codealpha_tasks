@@ -13,7 +13,7 @@ export const PRIORITIES = [
 ];
 
 const AVATAR_COLORS = ['#d9e2ec', '#dce8e1', '#e6e0f0', '#f0e6d8', '#d9e7e4', '#e7e0dc'];
-const LABEL_COLORS = ['#e7eef5', '#e8f0ea', '#f3e8f0', '#eeeaf6', '#e5f2f2', '#f4efe6'];
+const LABEL_COLORS = ['#4bce97', '#f5cd47', '#fea362', '#f87168', '#9f8fef', '#579dff', '#94c748', '#e774bb'];
 
 function hash(value) {
   let total = 0;

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,13 @@ export default function Layout({ children }) {
   const [notes, setNotes] = useState([]);
   const [open, setOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('keel-sidebar-collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
   const [projects, setProjects] = useState([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [title, setTitleState] = useState('Projects');
@@ -51,6 +58,14 @@ export default function Layout({ children }) {
   useEffect(() => {
     setNavOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('keel-sidebar-collapsed', sidebarCollapsed ? '1' : '0');
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -116,11 +131,14 @@ export default function Layout({ children }) {
 
   return (
     <WorkspaceContext.Provider value={{ projects, refreshProjects, title, setTitle }}>
-      <div className="shell">
+      <div className={sidebarCollapsed ? 'shell sidebar-collapsed' : 'shell'}>
         {navOpen && (
           <button type="button" className="scrim" aria-label="Close menu" onClick={() => setNavOpen(false)} />
         )}
-        <aside className={navOpen ? 'sidebar open' : 'sidebar'}>
+        <aside
+          className={navOpen ? 'sidebar open' : 'sidebar'}
+          aria-hidden={sidebarCollapsed && !navOpen ? true : undefined}
+        >
           <Link to="/" className="brand">
             Keel
           </Link>
@@ -151,6 +169,16 @@ export default function Layout({ children }) {
           <header className="topbar">
             <button type="button" className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setNavOpen(true)}>
               <Menu size={18} />
+            </button>
+            <button
+              type="button"
+              className="icon-btn sidebar-toggle"
+              aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              aria-pressed={sidebarCollapsed}
+              title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              onClick={() => setSidebarCollapsed((value) => !value)}
+            >
+              {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
             </button>
             <h1 className="top-title">
               {title === 'Projects' ? (

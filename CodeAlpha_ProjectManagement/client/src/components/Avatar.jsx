@@ -1,4 +1,4 @@
-import { Calendar, MessageSquare } from 'lucide-react';
+import { Calendar, CheckSquare, MessageSquare } from 'lucide-react';
 import { avatarColor, dueState, initials, PRIORITIES } from '../utils';
 
 export default function Avatar({ name, size = 'md' }) {
@@ -49,6 +49,18 @@ export function CommentCount({ count }) {
     <span className="meta-count" title={`${count} ${count === 1 ? 'comment' : 'comments'}`}>
       <MessageSquare size={13} aria-hidden="true" />
       {count}
+    </span>
+  );
+}
+
+export function ChecklistMark({ checklist = [] }) {
+  if (!checklist.length) return null;
+  const done = checklist.filter((item) => item.done).length;
+  const complete = done === checklist.length;
+  return (
+    <span className={complete ? 'meta-count check-done' : 'meta-count'} title={`${done}/${checklist.length} checklist`}>
+      <CheckSquare size={13} aria-hidden="true" />
+      {done}/{checklist.length}
     </span>
   );
 }

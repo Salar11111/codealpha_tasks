@@ -170,13 +170,14 @@ router.post(
     const project = await requireProject(req);
     const title = String(req.body.title || '').trim();
     const description = String(req.body.description || '').trim();
+    const column = columns.includes(req.body.column) ? req.body.column : 'todo';
     if (!title) throw httpError(400, 'Task title is required');
-    const count = await Task.countDocuments({ project: project._id, column: 'todo' });
+    const count = await Task.countDocuments({ project: project._id, column });
     await Task.create({
       project: project._id,
       title,
       description,
-      column: 'todo',
+      column,
       position: count,
       createdBy: req.user._id,
       assignees: [],
