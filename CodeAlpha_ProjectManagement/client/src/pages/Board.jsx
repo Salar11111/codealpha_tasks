@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DndContext, PointerSensor, closestCorners, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -226,28 +227,43 @@ export default function Board() {
   const { user } = useAuth();
   const socket = useSocket();
   const { setTitle, refreshProjects } = useWorkspace();
+  const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const [project, setProject] = useState(null);
-  const [activities, setActivities] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-  const [ready, setReady] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ name: '', description: '' });
   const [editError, setEditError] = useState('');
   const [editBusy, setEditBusy] = useState(false);
   const [editEntered, setEditEntered] = useState(false);
+  const editDialogRef = useRef(null);
   const [liveComment, setLiveComment] = useState(null);
   const tasksRef = useRef([]);
   const skipOpen = useRef(false);
   const seenComments = useRef(new Set());
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
+  const { data: boardData, isLoading: boardLoading, error: boardError } = useQuery({
+    queryKey: ['project', id],
+    queryFn: () => api(`/projects/${id}`).then((result) => ({
+      project: result.project,
+      tasks: result.tasks,
+      activities: result.activities || [],
+    })),
+  });
+  const project = boardData?.project || null;
+  const tasks = boardData?.tasks || [];
+  const activities = boardData?.activities || [];
+  const ready = !boardLoading;
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
   const replaceTasks = useCallback((next) => {
     tasksRef.current = next;
-    setTasks(next);
-  }, []);
+    queryClient.setQueryData(['project', id], (current) => (current ? { ...current, tasks: next } : current));
+  }, [id, queryClient]);
 
   const filters = {
     q: params.get('q') || '',
@@ -322,32 +338,16 @@ export default function Board() {
   }
 
   useEffect(() => {
-    setReady(false);
-    setProject(null);
-    replaceTasks([]);
     seenComments.current = new Set();
-  }, [id, replaceTasks]);
+  }, [id]);
 
   useEffect(() => {
-    let ignore = false;
-    api(`/projects/${id}`)
-      .then((data) => {
-        if (ignore) return;
-        setProject(data.project);
-        replaceTasks(data.tasks);
-        setActivities(data.activities || []);
-        setError('');
-        setReady(true);
-      })
-      .catch((err) => {
-        if (ignore) return;
-        setError(err.message);
-        setReady(true);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [id, replaceTasks]);
+    if (boardData) setError('');
+  }, [boardData]);
+
+  useEffect(() => {
+    if (boardError) setError(boardError.message);
+  }, [boardError]);
 
   useEffect(() => {
     if (project?.name) setTitle(project.name);
@@ -371,7 +371,9 @@ export default function Board() {
     socket.emit('join-project', id);
     const onSync = (next) => replaceTasks(next);
     const onComment = (payload) => noteComment(payload);
-    const onActivity = (activity) => setActivities((current) => [activity, ...current].slice(0, 20));
+    const onActivity = (activity) => queryClient.setQueryData(['project', id], (current) =>
+      current ? { ...current, activities: [activity, ...current.activities].slice(0, 20) } : current
+    );
     socket.on('tasks:sync', onSync);
     socket.on('comment:created', onComment);
     socket.on('activity:created', onActivity);
@@ -386,6 +388,20 @@ export default function Board() {
     if (!editing) return undefined;
     function onKey(event) {
       if (event.key === 'Escape') setEditing(false);
+      if (event.key !== 'Tab') return;
+      const dialog = editDialogRef.current;
+      if (!dialog) return;
+      const focusable = dialog.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -409,13 +425,24 @@ export default function Board() {
     if (commentId) seenComments.current.add(String(commentId));
     setLiveComment(payload);
     if (!payload?.taskId) return;
-    setTasks((current) => {
-      const next = current.map((task) =>
-        String(task._id) === String(payload.taskId) ? { ...task, commentCount: (task.commentCount || 0) + 1 } : task
-      );
-      tasksRef.current = next;
-      return next;
-    });
+    const next = tasks.map((task) =>
+      String(task._id) === String(payload.taskId) ? { ...task, commentCount: (task.commentCount || 0) + 1 } : task
+    );
+    replaceTasks(next);
+  }
+
+  async function toggleArchive() {
+    setError('');
+    try {
+      await api(`/projects/${project._id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ archived: !project.archived }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['project', id] });
+      refreshProjects();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function invite(event) {
@@ -423,7 +450,7 @@ export default function Board() {
     setError('');
     try {
       const data = await api(`/projects/${id}/members`, { method: 'POST', body: JSON.stringify({ email }) });
-      setProject(data.project);
+      queryClient.setQueryData(['project', id], (current) => (current ? { ...current, project: data.project } : current));
       setEmail('');
       refreshProjects();
     } catch (err) {
@@ -474,7 +501,7 @@ export default function Board() {
     setEditError('');
     try {
       const data = await api(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(draft) });
-      setProject(data.project);
+      queryClient.setQueryData(['project', id], (current) => (current ? { ...current, project: data.project } : current));
       setTitle(data.project.name);
       refreshProjects();
       setEditing(false);
@@ -519,7 +546,7 @@ export default function Board() {
     }
   }
 
-  if (error && !project) return <p className="error page-pad">{error}</p>;
+  if (error && !project) return <p className="error page-pad" aria-live="polite">{error}</p>;
   if (!project) return <p className="muted page-pad">Loading board…</p>;
 
   const listed = [...filtered].sort((a, b) => {
@@ -540,11 +567,7 @@ export default function Board() {
               <button
                 type="button"
                 className="text-btn"
-                onClick={() =>
-                  api(`/projects/${project._id}`, { method: 'PATCH', body: JSON.stringify({ archived: !project.archived }) }).then((data) =>
-                    setProject(data.project)
-                  )
-                }
+                onClick={toggleArchive}
               >
                 {project.archived ? 'Restore' : 'Archive'}
               </button>
@@ -645,7 +668,7 @@ export default function Board() {
         </div>
       </div>
       {view === 'board' && <p className="hint">Drag cards between lists. Click a card for details.</p>}
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" aria-live="polite">{error}</p>}
       {view === 'board' ? (
         <DndContext
           sensors={sensors}
@@ -701,7 +724,7 @@ export default function Board() {
       )}
       {editing && (
         <div className={`dialog-back${editEntered ? ' open' : ''}`} onMouseDown={() => setEditing(false)}>
-          <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-project-title" onMouseDown={(event) => event.stopPropagation()}>
+          <div ref={editDialogRef} className="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-project-title" onMouseDown={(event) => event.stopPropagation()}>
             <h2 id="edit-project-title">Edit project</h2>
             <form onSubmit={saveDetails}>
               <label>
@@ -715,7 +738,7 @@ export default function Board() {
                   onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
                 />
               </label>
-              {editError && <p className="error">{editError}</p>}
+              {editError && <p className="error" aria-live="polite">{editError}</p>}
               <div className="row">
                 <button className="btn" type="submit" disabled={editBusy}>
                   {editBusy ? 'Saving…' : 'Save'}

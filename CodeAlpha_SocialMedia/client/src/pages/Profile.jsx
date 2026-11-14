@@ -1,45 +1,46 @@
-import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import Avatar from '../components/Avatar';
 import PostCard from '../components/PostCard';
 import { SkeletonProfile } from '../components/Skeleton';
+import { User, Check, X } from 'lucide-react';
 
 export default function Profile() {
   const { username } = useParams();
-  const [profile, setProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['profile', username],
+    queryFn: () => api(`/users/${username}`),
+  });
+  const profile = data?.profile || null;
+  const posts = data?.posts || [];
 
-  useEffect(() => {
-    setProfile(null);
-    setError('');
-    api(`/users/${username}`)
-      .then((data) => {
-        setProfile(data.profile);
-        setPosts(data.posts);
-      })
-      .catch((err) => setError(err.message));
-  }, [username]);
-
-  async function toggleFollow() {
-    const path = `/users/${profile.id}/follow`;
-    const data = profile.isFollowing ? await api(path, { method: 'DELETE' }) : await api(path, { method: 'POST' });
-    setProfile((current) => ({
-      ...current,
-      isFollowing: data.isFollowing,
-      followers: current.followers + (data.isFollowing ? 1 : -1),
-    }));
-  }
+  const followMutation = useMutation({
+    mutationFn: (current) =>
+      current.isFollowing
+        ? api(`/users/${current.id}/follow`, { method: 'DELETE' })
+        : api(`/users/${current.id}/follow`, { method: 'POST' }),
+    onSuccess: (result) => {
+      queryClient.setQueryData(['profile', username], (current) => ({
+        ...current,
+        profile: {
+          ...current.profile,
+          isFollowing: result.isFollowing,
+          followers: current.profile.followers + (result.isFollowing ? 1 : -1),
+        },
+      }));
+    },
+  });
 
   if (!profile && error) {
     return (
       <p className="error page-status" role="alert">
-        {error}
+        {error.message}
       </p>
     );
   }
-  if (!profile) {
+  if (!profile || isLoading) {
     return (
       <section className="stack" aria-busy="true">
         <p className="sr-only">Loading profile</p>
@@ -63,9 +64,18 @@ export default function Profile() {
               <button
                 type="button"
                 className={profile.isFollowing ? 'btn btn-small btn-outline' : 'btn btn-small'}
-                onClick={() => toggleFollow().catch((err) => setError(err.message))}
+                onClick={() => followMutation.mutate(profile)}
+                disabled={followMutation.isPending}
               >
-                {profile.isFollowing ? 'Following' : 'Follow'}
+                {profile.isFollowing ? (
+                  <span>
+                    <User size={16} aria-hidden="true" /> Following
+                  </span>
+                ) : (
+                  <span>
+                    <User size={16} aria-hidden="true" /> Follow
+                  </span>
+                )}
               </button>
             )}
           </div>
@@ -80,9 +90,9 @@ export default function Profile() {
               <strong>{profile.following}</strong> following
             </Link>
           </p>
-          {error && (
+          {followMutation.error && (
             <p className="error" role="alert">
-              {error}
+              {followMutation.error.message}
             </p>
           )}
         </div>
@@ -97,8 +107,18 @@ export default function Profile() {
         <PostCard
           key={post._id}
           post={post}
-          onChange={(next) => setPosts((current) => current.map((item) => (item._id === next._id ? next : item)))}
-          onDelete={(id) => setPosts((current) => current.filter((item) => item._id !== id))}
+          onChange={(next) =>
+            queryClient.setQueryData(['profile', username], (current) => ({
+              ...current,
+              posts: current.posts.map((item) => (item._id === next._id ? next : item)),
+            }))
+          }
+          onDelete={(id) =>
+            queryClient.setQueryData(['profile', username], (current) => ({
+              ...current,
+              posts: current.posts.filter((item) => item._id !== id),
+            }))
+          }
         />
       ))}
     </section>

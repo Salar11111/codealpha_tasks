@@ -1,23 +1,25 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Home from './pages/Home';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Orders from './pages/Orders';
-import Wishlist from './pages/Wishlist';
-import Admin from './pages/Admin';
-import AuthForm from './pages/AuthForm';
+const Home = lazy(() => import('./pages/Home'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const Admin = lazy(() => import('./pages/Admin'));
+const AuthForm = lazy(() => import('./pages/AuthForm'));
 
 export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
-          <Routes>
+          <Suspense fallback={<div className="state-panel">Loading…</div>}>
+            <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
               <Route path="/products/:id" element={<ProductDetail />} />
@@ -65,6 +67,7 @@ export default function App() {
               />
             </Route>
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>

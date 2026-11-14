@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import QtyStepper from '../components/QtyStepper';
+import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { bindImgFade, money, onImgLoad } from '../utils';
+import { bindImgFade, getStockDetails, getStockStatusLabel, money, onImgLoad } from '../utils';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -22,6 +23,7 @@ export default function ProductDetail() {
   const [reviews, setReviews] = useState([]);
   const [reviewForm, setReviewForm] = useState({ rating: '5', text: '' });
   const [reviewNote, setReviewNote] = useState('');
+  const [notifyEmail, setNotifyEmail] = useState('');
 
   useEffect(() => {
     setProduct(null);
@@ -69,6 +71,19 @@ export default function ProductDetail() {
     }
   }
 
+  async function notifyRestock(productId) {
+    try {
+      const data = await api(`/restock-notifications`, {
+        method: 'POST',
+        body: JSON.stringify({ productId, email: notifyEmail }),
+      });
+      setNotifyEmail('');
+      alert(`Thank you! You'll be notified when ${product.name} is back in stock.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function submitReview(event) {
     event.preventDefault();
     setReviewNote('');
@@ -102,14 +117,14 @@ export default function ProductDetail() {
     }
   }
 
-  if (error && !product) return <p className="error page-pad">{error}</p>;
+  if (error && !product) return <p className="error page-pad" aria-live="polite">{error}</p>;
   if (!product) return <p className="muted page-pad">Loading product…</p>;
 
   return (
     <article>
       <div className="product">
-        <div className="product-photo reveal">
-          <img ref={bindImgFade} className="img-fade" src={product.image} alt={product.name} onLoad={onImgLoad} />
+        <div className="product-photo reveal product-photo-3d">
+          <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={product.image} alt={product.name} onLoad={onImgLoad} />
         </div>
         <div className="product-buy">
           <Link to={`/?category=${encodeURIComponent(product.category)}`} className="back">
@@ -118,19 +133,38 @@ export default function ProductDetail() {
           <h1>{product.name}</h1>
           <p className="price">{money(product.price)}</p>
           <p className="lead">{product.description}</p>
-          <p className="stock">
-            {product.stock < 1 ? 'Sold out' : product.stock <= 5 ? `Only ${product.stock} left` : `${product.stock} available`}
-          </p>
+          <p className="stock">{product.stock < 1 ? 'Sold out' : getStockStatusLabel(product.stock)}</p>
+          {product.stock < 1 && (
+            <div className="restock-notice">
+              <p className="muted">Out of stock.</p>
+              <label>
+                Notify me when available
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  defaultValue={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="text-btn small"
+                onClick={() => notifyRestock(product._id)}
+              >
+                Sign up
+              </button>
+            </div>
+          )}
           <form id="buy-form" className="add-row" onSubmit={onAdd}>
             <QtyStepper value={qty} max={product.stock || 1} onChange={setQty} disabled={product.stock < 1} />
             <button ref={buyRef} className="btn" type="submit" disabled={busy || product.stock < 1}>
               {product.stock < 1 ? 'Sold out' : busy ? 'Adding…' : 'Add to cart'}
             </button>
           </form>
-          {error && <p className="error">{error}</p>}
+          {error && <p className="error" aria-live="polite">{error}</p>}
           {user && (
             <button type="button" className="text-btn" onClick={toggleSaved}>
-              {saved ? 'Saved to wishlist' : 'Save to wishlist'}
+              <Heart size={16} fill={saved ? 'currentColor' : 'none'} /> {saved ? 'Saved to wishlist' : 'Save to wishlist'}
             </button>
           )}
           <p className="hint">This adds the item to your cart. Checkout records the order and does not charge a card.</p>
@@ -174,7 +208,7 @@ export default function ProductDetail() {
                 required
               />
             </label>
-            {reviewNote && <p className="error">{reviewNote}</p>}
+            {reviewNote && <p className="error" aria-live="polite">{reviewNote}</p>}
             <button className="btn" type="submit">
               Publish review
             </button>
@@ -189,14 +223,14 @@ export default function ProductDetail() {
             {related.map((item) => (
               <Link to={`/products/${item._id}`} className="card" key={item._id}>
                 <div className="card-media">
-                  <img ref={bindImgFade} className="img-fade" src={item.image} alt="" onLoad={onImgLoad} />
+                  <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={item.image} alt="" onLoad={onImgLoad} />
                 </div>
                 <div className="card-body">
                   <p className="eyebrow">{item.category}</p>
                   <h2>{item.name}</h2>
                   <div className="card-meta">
                     <strong>{money(item.price)}</strong>
-                  <span>{item.stock > 0 && item.stock <= 5 ? `Only ${item.stock} left` : item.stock > 0 ? `${item.stock} in stock` : 'Sold out'}</span>
+                  <span>{getStockDetails(item.stock)}</span>
                   </div>
                 </div>
               </Link>
@@ -206,7 +240,7 @@ export default function ProductDetail() {
       )}
 
       <div className={showBar ? 'buy-bar on' : 'buy-bar'} hidden={!showBar}>
-        <img ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
+        <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
         <div>
           <strong>{product.name}</strong>
           <span>{money(product.price)}</span>

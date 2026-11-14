@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
@@ -34,11 +35,32 @@ function PrimaryLinks({ user }) {
 }
 
 function AlertsPanel({ notes, onClose }) {
+  const panelRef = useRef(null);
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+    function onKey(event) {
+      if (event.key !== 'Tab') return;
+      const focusable = panel.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    panel.addEventListener('keydown', onKey);
+    return () => panel.removeEventListener('keydown', onKey);
+  }, []);
   return (
-    <div className="card alerts-panel" role="dialog" aria-label="Alerts" aria-modal="true">
+    <div ref={panelRef} className="card alerts-panel" role="dialog" aria-label="Alerts" aria-modal="true">
       <div className="alerts-head">
         <h2>Alerts</h2>
-        <button type="button" className="text-btn" onClick={onClose}>
+        <button type="button" className="text-btn" onClick={onClose} autoFocus>
           Close
         </button>
       </div>
@@ -64,6 +86,7 @@ function AlertsPanel({ notes, onClose }) {
 
 export default function Layout() {
   const { user, loading, logout } = useAuth();
+  const location = useLocation();
   const [notes, setNotes] = useState([]);
   const [unread, setUnread] = useState(0);
   const [openNotes, setOpenNotes] = useState(false);
@@ -122,8 +145,21 @@ export default function Layout() {
   if (!user) {
     return (
       <div className="shell shell-guest">
-        <main className="guest-main">
-          <Outlet />
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <main id="main-content" className="guest-main">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     );
@@ -195,8 +231,21 @@ export default function Layout() {
             </button>
           </div>
         </aside>
-        <main className="column">
-          <Outlet />
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        <main id="main-content" className="column">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
         <Suggestions />
       </div>

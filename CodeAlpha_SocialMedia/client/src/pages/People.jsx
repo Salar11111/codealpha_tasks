@@ -1,35 +1,33 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import Avatar from '../components/Avatar';
 import { IconSearch } from '../components/icons';
 import { SkeletonPerson } from '../components/Skeleton';
 
 export default function People() {
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
-  const [users, setUsers] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [debounced, setDebounced] = useState('');
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      api(`/users/search?q=${encodeURIComponent(query.trim())}`)
-        .then((data) => {
-          setUsers(data.users);
-          setError('');
-        })
-        .catch((err) => setError(err.message))
-        .finally(() => setLoading(false));
-    }, 200);
+    const timer = setTimeout(() => setDebounced(query.trim()), 200);
     return () => clearTimeout(timer);
   }, [query]);
 
-  async function toggle(user) {
-    const path = `/users/${user.id}/follow`;
-    const data = user.isFollowing ? await api(path, { method: 'DELETE' }) : await api(path, { method: 'POST' });
-    setUsers((current) => current.map((item) => (item.id === user.id ? { ...item, isFollowing: data.isFollowing } : item)));
-  }
+  const { data: users = [], error, isLoading: loading } = useQuery({
+    queryKey: ['users', 'search', debounced],
+    queryFn: () => api(`/users/search?q=${encodeURIComponent(debounced)}`).then((result) => result.users),
+  });
+
+  const followMutation = useMutation({
+    mutationFn: (person) =>
+      person.isFollowing
+        ? api(`/users/${person.id}/follow`, { method: 'DELETE' })
+        : api(`/users/${person.id}/follow`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', 'search'] }),
+  });
 
   return (
     <section className="stack" aria-busy={loading}>
@@ -48,7 +46,7 @@ export default function People() {
       </div>
       {error && (
         <p className="error" role="alert">
-          {error}
+          {error.message}
         </p>
       )}
       {loading && (
@@ -63,22 +61,23 @@ export default function People() {
       )}
       {!loading && (
         <ul className="people">
-          {users.map((user) => (
-            <li key={user.id} className="person card">
-              <Avatar name={user.name} />
+          {users.map((person) => (
+            <li key={person.id} className="person card">
+              <Avatar name={person.name} />
               <div className="person-copy">
-                <Link to={`/u/${user.username}`}>
-                  <strong>{user.name}</strong>
+                <Link to={`/u/${person.username}`}>
+                  <strong>{person.name}</strong>
                 </Link>
-                <p className="muted">@{user.username}</p>
-                {user.bio && <p>{user.bio}</p>}
+                <p className="muted">@{person.username}</p>
+                {person.bio && <p>{person.bio}</p>}
               </div>
               <button
                 type="button"
-                className={user.isFollowing ? 'btn btn-small btn-outline' : 'btn btn-small'}
-                onClick={() => toggle(user).catch((err) => setError(err.message))}
+                className={person.isFollowing ? 'btn btn-small btn-outline' : 'btn btn-small'}
+                onClick={() => followMutation.mutate(person)}
+                disabled={followMutation.isPending}
               >
-                {user.isFollowing ? 'Following' : 'Follow'}
+                {person.isFollowing ? 'Following' : 'Follow'}
               </button>
             </li>
           ))}

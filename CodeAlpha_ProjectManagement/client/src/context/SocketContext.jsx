@@ -13,7 +13,7 @@ export function SocketProvider({ children }) {
       setSocket(null);
       return undefined;
     }
-    const next = io({ auth: { token: localStorage.getItem('token') } });
+    const next = io({ withCredentials: true });
     setSocket(next);
     return () => next.disconnect();
   }, [user]);

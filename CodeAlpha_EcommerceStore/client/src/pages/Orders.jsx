@@ -1,25 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { money } from '../utils';
 
 export default function Orders() {
   const location = useLocation();
-  const [orders, setOrders] = useState([]);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    api('/orders')
-      .then((data) => setOrders(data.orders))
-      .catch((err) => setError(err.message));
-  }, []);
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['orders'],
+    queryFn: () => api('/orders').then((result) => result.orders),
+  });
+  const orders = data || [];
 
   return (
     <section className="narrow">
       <p className="eyebrow tone-cobalt">History</p>
       <h1>Orders</h1>
       {location.state?.placed && <p className="notice">Order placed. Status: pending.</p>}
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" aria-live="polite">{error}</p>}
       {orders.length === 0 && !error && (
         <div className="empty-panel">
           <h1>No orders yet.</h1>

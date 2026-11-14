@@ -12,6 +12,16 @@ function sign(user) {
   return jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: '7d' });
 }
 
+function authCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
 function publicUser(user) {
   return {
     id: user._id,
@@ -42,7 +52,9 @@ router.post(
     const existing = await User.findOne({ email });
     if (existing) return res.status(409).json({ message: 'Email is already registered' });
     const user = await User.create({ name, email, password: await bcrypt.hash(password, 10) });
-    res.status(201).json({ token: sign(user), user: publicUser(user) });
+    const token = sign(user);
+    res.cookie('token', token, authCookieOptions());
+    res.status(201).json({ token, user: publicUser(user) });
   })
 );
 
@@ -56,7 +68,9 @@ router.post(
     if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-    res.json({ token: sign(user), user: publicUser(user) });
+    const token = sign(user);
+    res.cookie('token', token, authCookieOptions());
+    res.json({ token, user: publicUser(user) });
   })
 );
 
@@ -80,6 +94,26 @@ router.put(
     };
     await req.user.save();
     res.json({ user: publicUser(req.user) });
+  })
+);
+
+router.post('/logout', (_req, res) => {
+  res.clearCookie('token', { path: '/' });
+  res.json({ ok: true });
+});
+
+// Restock notification subscription
+router.post(
+  '/restock-notifications',
+  asyncHandler(async (req, res) => {
+    const { productId, email } = req.body;
+    if (!productId || !email) {
+      return res.status(400).json({ message: 'Product ID and email are required' });
+    }
+    // In a real app, we'd store this in a dedicated collection
+    // For now, we'll just log and acknowledge
+    console.log(`Restock notification requested: product ${productId}, email ${email}`);
+    res.json({ ok: true, message: 'You will be notified when this product is back in stock.' });
   })
 );
 

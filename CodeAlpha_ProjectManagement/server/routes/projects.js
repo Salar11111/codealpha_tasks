@@ -45,6 +45,15 @@ function cleanLabels(value) {
   return labels;
 }
 
+function taskPositionUpdates(tasks, column) {
+  return tasks.map((task, position) => ({
+    updateOne: {
+      filter: { _id: task._id },
+      update: { $set: { column, position } },
+    },
+  }));
+}
+
 async function logActivity(req, project, message) {
   const activity = await Activity.create({ project: project._id, actor: req.user._id, message });
   await activity.populate('actor', 'name');
@@ -197,6 +206,12 @@ router.patch(
     const project = await requireProject(req);
     const task = await Task.findOne({ _id: req.params.taskId, project: project._id });
     if (!task) throw httpError(404, 'Task not found');
+    const userId = req.user._id.toString();
+    const canEdit =
+      project.owner.toString() === userId ||
+      task.createdBy.toString() === userId ||
+      task.assignees.some((id) => id.toString() === userId);
+    if (!canEdit) throw httpError(403, 'Only task assignees, the creator, or project owner can edit this task');
 
     if (req.body.title !== undefined) {
       const title = String(req.body.title).trim();
@@ -252,19 +267,13 @@ router.patch(
       position = Math.max(0, Math.min(position, siblings.length));
       task.column = column;
       siblings.splice(position, 0, task);
-      for (let index = 0; index < siblings.length; index += 1) {
-        siblings[index].column = column;
-        siblings[index].position = index;
-        await siblings[index].save();
-      }
+      const updates = taskPositionUpdates(siblings, column);
       if (fromColumn !== column) {
         const left = await Task.find({ project: project._id, column: fromColumn }).sort({ position: 1 });
-        for (let index = 0; index < left.length; index += 1) {
-          left[index].position = index;
-          await left[index].save();
-        }
+        updates.push(...taskPositionUpdates(left, fromColumn));
         await logActivity(req, project, `${req.user.name} moved “${task.title}” to ${column}`);
       }
+      await Task.bulkWrite(updates);
     } else {
       await task.save();
     }
@@ -286,10 +295,7 @@ router.delete(
     await Comment.deleteMany({ task: task._id });
     await task.deleteOne();
     const left = await Task.find({ project: project._id, column: task.column }).sort({ position: 1 });
-    for (let index = 0; index < left.length; index += 1) {
-      left[index].position = index;
-      await left[index].save();
-    }
+    if (left.length) await Task.bulkWrite(taskPositionUpdates(left, task.column));
     const tasks = await loadTasks(project._id);
     broadcastTasks(req.app.get('io'), project._id, tasks);
     res.json({ tasks });

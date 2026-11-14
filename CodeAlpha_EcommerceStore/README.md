@@ -31,6 +31,14 @@ React (Vite), React Router, Node.js, Express, Mongoose, MongoDB, JWT, bcrypt.
 
 Requirements: Node.js 18+ and MongoDB running locally (or a MongoDB Atlas URI).
 
+Checkout runs inside a MongoDB transaction, so the database must be a replica set; a single-node set is enough. The repo's `docker-compose.yml` already starts one:
+
+```bash
+docker compose up -d mongo
+```
+
+If you start `mongod` yourself, use `--replSet rs0` and run `rs.initiate()` once in `mongosh`. With a standalone `mongod`, browsing and the cart work, but placing an order fails.
+
 ```bash
 npm run install:all
 ```

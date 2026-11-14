@@ -1,34 +1,36 @@
-import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../context/AuthContext';
+
+const loginSchema = z.object({
+  email: z.string().email('A valid email is required'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+const registerSchema = loginSchema.extend({
+  name: z.string().trim().min(1, 'Name is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
 
 export default function AuthForm({ mode }) {
   const isLogin = mode === 'login';
   const { user, login, register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const schema = isLogin ? loginSchema : registerSchema;
+  const {
+    register: field,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({ resolver: zodResolver(schema), defaultValues: { name: '', email: '', password: '' } });
 
   if (user) return <Navigate to="/" replace />;
 
-  function update(event) {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  }
-
-  async function onSubmit(event) {
-    event.preventDefault();
-    setBusy(true);
-    setError('');
-    try {
-      if (isLogin) await login(form.email, form.password);
-      else await register(form.name, form.email, form.password);
-      navigate('/');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
+  async function onSubmit(values) {
+    if (isLogin) await login(values.email, values.password);
+    else await register(values.name, values.email, values.password);
+    navigate('/');
   }
 
   return (
@@ -45,24 +47,33 @@ export default function AuthForm({ mode }) {
           </p>
         )}
       </div>
-      <form className="panel" onSubmit={onSubmit}>
+      <form className="panel" onSubmit={handleSubmit(onSubmit)}>
         {!isLogin && (
           <label>
             Name
-            <input name="name" value={form.name} onChange={update} required />
+            <input {...field('name')} required />
+            {errors.name && <span className="error">{errors.name.message}</span>}
           </label>
         )}
         <label>
           Email
-          <input name="email" type="email" value={form.email} onChange={update} required />
+          <input type="email" autoComplete="email" {...field('email')} required />
+          {errors.email && <span className="error">{errors.email.message}</span>}
         </label>
         <label>
           Password
-          <input name="password" type="password" minLength={6} value={form.password} onChange={update} required />
+          <input
+            type="password"
+            minLength={6}
+            autoComplete={isLogin ? 'current-password' : 'new-password'}
+            {...field('password')}
+            required
+          />
+          {errors.password && <span className="error">{errors.password.message}</span>}
         </label>
-        {error && <p className="error">{error}</p>}
-        <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Please wait…' : isLogin ? 'Log in' : 'Create account'}
+        {errors.root && <p className="error" aria-live="polite">{errors.root.message}</p>}
+        <button className="btn" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Please wait…' : isLogin ? 'Log in' : 'Create account'}
         </button>
         <p>
           {isLogin ? (

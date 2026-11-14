@@ -83,7 +83,7 @@ export default function Checkout() {
             <input name="postalCode" value={form.postalCode} onChange={update} required />
           </label>
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" aria-live="polite">{error}</p>}
         <button className="btn" type="submit" disabled={busy}>
           {busy ? 'Placing order…' : `Place order · ${money(total)}`}
         </button>

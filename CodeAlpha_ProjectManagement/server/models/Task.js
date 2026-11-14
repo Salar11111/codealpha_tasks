@@ -25,4 +25,7 @@ const taskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+taskSchema.index({ project: 1, column: 1, position: 1 });
+taskSchema.index({ assignees: 1, dueDate: 1 });
+
 export default mongoose.model('Task', taskSchema);

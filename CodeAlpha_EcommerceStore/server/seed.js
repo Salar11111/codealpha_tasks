@@ -3,8 +3,6 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from './config/db.js';
 import User from './models/User.js';
 import Product from './models/Product.js';
-import Cart from './models/Cart.js';
-import Order from './models/Order.js';
 import Review from './models/Review.js';
 
 const products = [
@@ -78,25 +76,28 @@ await connectDB();
 const password = await bcrypt.hash('password123', 10);
 await User.findOneAndUpdate(
   { email: 'demo@codealpha.dev' },
-  { name: 'Demo Shopper', email: 'demo@codealpha.dev', password, role: 'customer' },
+  { $setOnInsert: { name: 'Demo Shopper', email: 'demo@codealpha.dev', password, role: 'customer' } },
   { upsert: true, new: true, setDefaultsOnInsert: true }
 );
 await User.findOneAndUpdate(
   { email: 'admin@codealpha.dev' },
-  { name: 'Shop Admin', email: 'admin@codealpha.dev', password, role: 'admin' },
+  { $setOnInsert: { name: 'Shop Admin', email: 'admin@codealpha.dev', password, role: 'admin' } },
   { upsert: true, new: true, setDefaultsOnInsert: true }
 );
-await Product.deleteMany({});
-await Cart.deleteMany({});
-await Order.deleteMany({});
-await Review.deleteMany({});
-const saved = await Product.insertMany(products);
+const saved = await Promise.all(
+  products.map((product) =>
+    Product.findOneAndUpdate(
+      { name: product.name },
+      { $setOnInsert: product },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    )
+  )
+);
 const demo = await User.findOne({ email: 'demo@codealpha.dev' });
-await Review.create({
-  product: saved[0]._id,
-  user: demo._id,
-  rating: 5,
-  text: 'Wide lip, easy to stack, and it stays on the table.',
-});
+await Review.findOneAndUpdate(
+  { product: saved[0]._id, user: demo._id },
+  { $setOnInsert: { rating: 5, text: 'Wide lip, easy to stack, and it stays on the table.' } },
+  { upsert: true, new: true, setDefaultsOnInsert: true }
+);
 console.log('Seeded Northline. demo@codealpha.dev and admin@codealpha.dev / password123');
 process.exit(0);

@@ -1544,3 +1544,76 @@ legend {
     max-height: none;
   }
 }
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: #111;
+  color: #fff;
+  border-radius: 0 0 0.5rem 0;
+}
+.skip-link:focus {
+  left: 0;
+}
+/* Enhanced visual system */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --surface: #1f2937;
+    --ink: #f3f4f6;
+    --muted: #9ca3af;
+    --line: #374151;
+    --line-soft: #1f2937;
+    --column-bg: #111827;
+    --accent: #f59e0b;
+    --accent-dark: #d97706;
+    --accent-soft: rgba(245, 158, 11, 0.16);
+    --progress: #38bdf8;
+    --done: #34d399;
+    --danger: #f87171;
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+    --shadow-drag: 0 20px 48px rgba(0, 0, 0, 0.65);
+  }
+  body { background: var(--bg); color: var(--ink); }
+  .sidebar { background: rgba(31, 41, 55, 0.94); }
+  .topbar { background: rgba(15, 23, 42, 0.9); }
+  .panel, .dialog, .card-modal { background: rgba(31, 41, 55, 0.96); }
+}
+
+.project-card, .work-row, .card {
+  transform-style: preserve-3d;
+  perspective: 900px;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.project-card:hover, .work-row:hover, .card:hover {
+  transform: translateY(-4px) rotateX(1.5deg) rotateY(-1.5deg);
+  box-shadow: var(--shadow);
+}
+.panel, .dialog, .card-modal, .sidebar, .topbar {
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+}
+.btn, .icon-btn, .text-btn, .add-card-trigger {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s ease, box-shadow 0.18s ease;
+}
+.btn:active:not(:disabled), .icon-btn:active, .text-btn:active, .add-card-trigger:active {
+  transform: scale(0.96);
+}
+.column {
+  transform-style: preserve-3d;
+  perspective: 1200px;
+}
+.card.dragging {
+  transform: rotate(2deg) scale(1.03) translateZ(12px);
+}
+.activity-trail li, .card, .column {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.empty-col, .empty {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.empty-col:hover, .empty:hover {
+  transform: translateY(-2px);
+}

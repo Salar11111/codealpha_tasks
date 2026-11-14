@@ -17,7 +17,7 @@ export default function Saved() {
       <header className="page-head">
         <h1>Saved</h1>
       </header>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" aria-live="polite">{error}</p>}
       {posts.length === 0 && !error && <p className="muted">Bookmarked posts show up here.</p>}
       {posts.map((post) => (
         <PostCard

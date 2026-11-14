@@ -1,52 +1,62 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
+import { io } from 'socket.io-client';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     api('/auth/me')
       .then((data) => setUser(data.user))
-      .catch(() => {
-        localStorage.removeItem('token');
-        setUser(null);
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setSocket(null);
+      return undefined;
+    }
+    const next = io({ withCredentials: true, auth: { token: localStorage.getItem('token') } });
+    setSocket(next);
+
+    next.on('notification:new', (note) => {
+      setNotifications((prev) => [note, ...prev].slice(0, 50));
+    });
+
+    return () => {
+      next.disconnect();
+    };
+  }, [user]);
 
   const value = useMemo(
     () => ({
       user,
       loading,
+      notifications,
       async login(email, password) {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-        localStorage.setItem('token', data.token);
-        setUser(data.user);
-      },
-      async register(payload) {
-        const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
-        localStorage.setItem('token', data.token);
-        setUser(data.user);
-      },
-      async updateProfile(name, bio) {
-        const data = await api('/users/me', { method: 'PUT', body: JSON.stringify({ name, bio }) });
         setUser(data.user);
         return data.user;
       },
-      logout() {
-        localStorage.removeItem('token');
-        setUser(null);
+      async register(name, username, email, password) {
+        const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ name, username, email, password }) });
+        setUser(data.user);
+        return data.user;
       },
+      async logout() {
+        await api('/auth/logout', { method: 'POST' }).catch(() => {});
+        setUser(null);
+        setNotifications([]);
+      },
+      setUser,
     }),
-    [user, loading]
+    [user, loading, notifications]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

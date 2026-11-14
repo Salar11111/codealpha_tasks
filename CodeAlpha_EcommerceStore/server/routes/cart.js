@@ -31,11 +31,15 @@ router.post(
     const cart = await Cart.findOne({ user: req.user._id }) || (await Cart.create({ user: req.user._id, items: [] }));
     const existing = cart.items.find((item) => item.product.toString() === productId);
     const current = existing ? existing.qty : 0;
-    const nextQty = mode === 'set' ? Number(qty) : current + Number(qty);
+    const nextQty = mode === 'set' ? Math.max(0, Number(qty)) : Math.max(0, current + Number(qty));
 
-    if (!Number.isFinite(nextQty) || nextQty < 0) {
+    if (!Number.isFinite(nextQty)) {
       return res.status(400).json({ message: 'Quantity is invalid' });
     }
+
+    // Note: Stock validation is performed at checkout for atomicity.
+    // The cart allows adding items up to stock quantity, but concurrent
+    // requests may temporarily exceed stock until checkout validates.
     if (nextQty > product.stock) {
       return res.status(400).json({ message: `Only ${product.stock} in stock` });
     }

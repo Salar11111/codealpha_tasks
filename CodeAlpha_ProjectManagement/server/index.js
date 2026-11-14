@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
@@ -13,10 +17,15 @@ import notificationRoutes from './routes/notifications.js';
 
 const app = express();
 const origin = process.env.CLIENT_URL || 'http://localhost:5175';
-app.use(cors({ origin }));
-app.use(express.json());
+app.use(helmet());
+app.use(cors({ origin, credentials: true }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));
+app.use(mongoSanitize());
+app.use(hpp());
+app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/projects', projectRoutes);
@@ -30,12 +39,23 @@ app.use((err, _req, res, _next) => {
 });
 
 const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin } });
+const io = new Server(httpServer, { cors: { origin, credentials: true } });
 app.set('io', io);
+
+function readCookieFromHeader(header, name) {
+  const cookie = header || '';
+  const match = cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
+}
 
 io.use((socket, next) => {
   try {
-    const decoded = jwt.verify(socket.handshake.auth?.token || '', process.env.JWT_SECRET);
+    const token =
+      socket.handshake.auth?.token ||
+      readCookieFromHeader(socket.handshake.headers?.cookie, 'token');
+    if (!token) return next(new Error('Unauthorized'));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id) return next(new Error('Unauthorized'));
     socket.userId = decoded.id;
     next();
   } catch {
@@ -59,5 +79,14 @@ io.on('connection', (socket) => {
 });
 
 const port = process.env.PORT || 5003;
-await connectDB();
-httpServer.listen(port, () => console.log(`Projects API listening on ${port}`));
+if (!process.env.MONGO_URI) throw new Error('MONGO_URI is required');
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters');
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  await connectDB();
+  httpServer.listen(port, () => console.log(`Projects API listening on ${port}`));
+}
+
+export default app;

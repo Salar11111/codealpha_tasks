@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { Suspense, lazy } from 'react';
 import { useCart } from '../context/CartContext';
-import { bindImgFade, money, onImgLoad } from '../utils';
+const Hero3D = lazy(() => import('../components/Hero3D'));
+import { bindImgFade, money, onImgLoad, getStockStatusLabel, getStockStatusClass, getStockDetails } from '../utils';
 
 const REVIEWS = [
   {
@@ -154,66 +156,71 @@ export default function Home() {
           <a className="btn" href="#shop">
             Shop the collection
           </a>
-        </div>
-        {slides.length > 0 && (
-          <div
-            className="hero-slideshow"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onFocus={() => setPaused(true)}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
-            }}
-          >
-            {slides.map((product, index) => (
-              <Link
-                key={product._id}
-                to={`/products/${product._id}`}
-                className={index === slide ? 'hero-slide on' : 'hero-slide'}
-                aria-hidden={index !== slide}
-                tabIndex={index === slide ? 0 : -1}
-              >
-                <img ref={bindImgFade} className="img-fade" src={product.image} alt={product.name} onLoad={onImgLoad} />
-                <span>
-                  {product.name}
-                  <strong>{money(product.price)}</strong>
-                </span>
-              </Link>
-            ))}
-            {slides.length > 1 && (
-              <>
-                <div className="hero-controls">
-                  <button
-                    type="button"
-                    aria-label="Previous product"
-                    onClick={() => setSlide((current) => (current - 1 + slides.length) % slides.length)}
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next product"
-                    onClick={() => setSlide((current) => (current + 1) % slides.length)}
-                  >
-                    ›
-                  </button>
-                </div>
-                <div className="hero-dots">
-                  {slides.map((product, index) => (
-                    <button
-                      key={product._id}
-                      type="button"
-                      className={index === slide ? 'on' : ''}
-                      aria-label={`Show ${product.name}`}
-                      aria-current={index === slide ? 'true' : undefined}
-                      onClick={() => setSlide(index)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+          <div className="hero-3d-wrap">
+            <Suspense fallback={<div className="hero-3d" />}>
+              <Hero3D />
+            </Suspense>
           </div>
-        )}
+          {slides.length > 0 && (
+            <div
+              className="hero-slideshow"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onFocus={() => setPaused(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
+              }}
+            >
+              {slides.map((product, index) => (
+                <Link
+                  key={product._id}
+                  to={`/products/${product._id}`}
+                  className={index === slide ? 'hero-slide on' : 'hero-slide'}
+                  aria-hidden={index !== slide}
+                  tabIndex={index === slide ? 0 : -1}
+                >
+                  <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={product.image} alt={product.name} onLoad={onImgLoad} />
+                  <span>
+                    {product.name}
+                    <strong>{money(product.price)}</strong>
+                  </span>
+                </Link>
+              ))}
+              {slides.length > 1 && (
+                <>
+                  <div className="hero-controls">
+                    <button
+                      type="button"
+                      aria-label="Previous product"
+                      onClick={() => setSlide((current) => (current - 1 + slides.length) % slides.length)}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next product"
+                      onClick={() => setSlide((current) => (current + 1) % slides.length)}
+                    >
+                      ›
+                    </button>
+                  </div>
+                  <div className="hero-dots">
+                    {slides.map((product, index) => (
+                      <button
+                        key={product._id}
+                        type="button"
+                        className={index === slide ? 'on' : ''}
+                        aria-label={`Show ${product.name}`}
+                        aria-current={index === slide ? 'true' : undefined}
+                        onClick={() => setSlide(index)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <ul className="trust">
@@ -265,7 +272,10 @@ export default function Home() {
               style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
             >
               <div className="card-media">
-                <img ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
+                <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
+                <span className="stock-badge status-{getStockStatusClass(product.stock)}">
+                  {getStockStatusLabel(product.stock)}
+                </span>
                 <button
                   type="button"
                   className="quick-add"
@@ -280,7 +290,7 @@ export default function Home() {
                 <h2>{product.name}</h2>
                 <div className="card-meta">
                   <strong>{money(product.price)}</strong>
-                  <span>{product.stock > 0 && product.stock <= 5 ? `Only ${product.stock} left` : product.stock > 0 ? `${product.stock} in stock` : 'Sold out'}</span>
+                  <span>{getStockDetails(product.stock)}</span>
                 </div>
               </div>
             </Link>

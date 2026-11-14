@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 import QtyStepper from '../components/QtyStepper';
 import { useCart } from '../context/CartContext';
 import { money } from '../utils';
@@ -38,11 +39,11 @@ export default function Cart() {
     <section className="cart-layout">
       <div>
         <h1>Cart</h1>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" aria-live="polite">{error}</p>}
         <ul className="line-list">
           {items.map((item) => (
             <li key={item.product._id}>
-              <img src={item.product.image} alt="" />
+              <img loading="lazy" decoding="async" src={item.product.image} alt="" />
               <div>
                 <Link to={`/products/${item.product._id}`}>
                   <strong>{item.product.name}</strong>
@@ -56,8 +57,8 @@ export default function Cart() {
                   onChange={(next) => change(item.product._id, next)}
                 />
                 <strong>{money(item.product.price * item.qty)}</strong>
-                <button type="button" className="text-btn" onClick={() => removeItem(item.product._id)}>
-                  Remove
+                <button type="button" className="text-btn" onClick={() => removeItem(item.product._id)} aria-label="Remove from cart">
+                  <Trash2 size={16} />
                 </button>
               </div>
             </li>

@@ -75,10 +75,14 @@ router.get(
     const follows = await Follow.find({ follower: req.user._id }).select('following');
     const authorIds = follows.map((row) => row.following);
     authorIds.push(req.user._id);
-    const posts = await Post.find({ author: { $in: authorIds } })
-      .sort({ createdAt: -1 })
-      .populate('author', authorFields);
-    res.json({ posts: await presentPosts(posts, req.user._id) });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 50));
+    const filter = { author: { $in: authorIds } };
+    const [posts, total] = await Promise.all([
+      Post.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).populate('author', authorFields),
+      Post.countDocuments(filter),
+    ]);
+    res.json({ posts: await presentPosts(posts, req.user._id), total, page, pages: Math.ceil(total / limit) });
   })
 );
 
@@ -136,6 +140,10 @@ router.delete(
     }
     await Comment.deleteMany({ post: post._id });
     await Bookmark.deleteMany({ post: post._id });
+    if (post.image && post.image.startsWith('/uploads/')) {
+      const filePath = path.join(process.cwd(), post.image.replace(/^\//, ''));
+      fs.promises.unlink(filePath).catch(() => {});
+    }
     await post.deleteOne();
     res.json({ ok: true });
   })
@@ -144,21 +152,42 @@ router.delete(
 router.post(
   '/:id/like',
   asyncHandler(async (req, res) => {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
-    const already = post.likes.some((id) => id.toString() === req.user._id.toString());
-    if (already) post.likes.pull(req.user._id);
-    else {
-      post.likes.push(req.user._id);
-      await notifySocial({
-        recipient: post.author,
-        actor: req.user._id,
-        type: 'like',
-        post: post._id,
-        text: `${req.user.name} liked your post`,
-      });
+    let post;
+    let liked;
+    // Retry if another toggle changes the state before either conditional update matches.
+    while (!post) {
+      post = await Post.findOneAndUpdate(
+        { _id: req.params.id, likes: req.user._id },
+        { $pull: { likes: req.user._id } },
+        { new: true }
+      );
+      if (post) {
+        liked = false;
+        break;
+      }
+
+      post = await Post.findOneAndUpdate(
+        { _id: req.params.id, likes: { $ne: req.user._id } },
+        { $addToSet: { likes: req.user._id } },
+        { new: true }
+      );
+      if (post) {
+        liked = true;
+        break;
+      }
+
+      if (!(await Post.exists({ _id: req.params.id }))) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
     }
-    await post.save();
+
+    if (liked) {
+      const io = req.app.get('io');
+      await notifySocial(
+        { recipient: post.author, actor: req.user._id, type: 'like', post: post._id, text: `${req.user.name} liked your post` },
+        io
+      );
+    }
     await post.populate('author', authorFields);
     const [shaped] = await presentPosts([post], req.user._id);
     res.json({ post: shaped });
@@ -217,21 +246,16 @@ router.post(
     }
     const comment = await Comment.create({ post: post._id, author: req.user._id, text, parent: parent?._id || null });
     await comment.populate('author', authorFields);
-    await notifySocial({
-      recipient: post.author,
-      actor: req.user._id,
-      type: 'comment',
-      post: post._id,
-      text: `${req.user.name} commented on your post`,
-    });
+    const io = req.app.get('io');
+    await notifySocial(
+      { recipient: post.author, actor: req.user._id, type: 'comment', post: post._id, text: `${req.user.name} commented on your post` },
+      io
+    );
     if (parent) {
-      await notifySocial({
-        recipient: parent.author,
-        actor: req.user._id,
-        type: 'reply',
-        post: post._id,
-        text: `${req.user.name} replied to your comment`,
-      });
+      await notifySocial(
+        { recipient: parent.author, actor: req.user._id, type: 'reply', post: post._id, text: `${req.user.name} replied to your comment` },
+        io
+      );
     }
     res.status(201).json({ comment });
   })

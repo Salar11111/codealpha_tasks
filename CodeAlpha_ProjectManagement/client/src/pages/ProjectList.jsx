@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -24,30 +25,25 @@ export default function ProjectList() {
   const { user } = useAuth();
   const userId = user?.id;
   const { setTitle, refreshProjects } = useWorkspace();
-  const [projects, setProjects] = useState([]);
-  const [mine, setMine] = useState([]);
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [workLoaded, setWorkLoaded] = useState(false);
   const [dialogEntered, setDialogEntered] = useState(false);
+
+  const { data: projects = [], isLoading: loaded } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => api('/projects').then((result) => result.projects),
+  });
+  const { data: mine = [], isLoading: workLoaded } = useQuery({
+    queryKey: ['tasks', 'mine'],
+    queryFn: () => api('/tasks/mine').then((result) => result.tasks),
+  });
 
   useEffect(() => {
     setTitle('Projects');
   }, [setTitle]);
-
-  useEffect(() => {
-    api('/projects')
-      .then((data) => setProjects(data.projects))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoaded(true));
-    api('/tasks/mine')
-      .then((data) => setMine(data.tasks))
-      .catch(() => setMine([]))
-      .finally(() => setWorkLoaded(true));
-  }, []);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -67,16 +63,24 @@ export default function ProjectList() {
     return () => cancelAnimationFrame(frame);
   }, [open]);
 
+  const createMutation = useMutation({
+    mutationFn: (payload) => api('/projects', { method: 'POST', body: JSON.stringify(payload) }),
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['projects'] });
+      await refreshProjects();
+      navigate(`/projects/${data.project._id}`);
+    },
+    onError: (err) => setError(err.message),
+  });
+
   async function createProject(event) {
     event.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const data = await api('/projects', { method: 'POST', body: JSON.stringify(form) });
-      await refreshProjects();
-      navigate(`/projects/${data.project._id}`);
-    } catch (err) {
-      setError(err.message);
+      await createMutation.mutateAsync(form);
+    } catch {
+      // error handled by mutation
     } finally {
       setBusy(false);
     }
@@ -112,7 +116,7 @@ export default function ProjectList() {
             <Plus size={16} aria-hidden="true" /> New project
           </button>
         </div>
-        {error && !open && <p className="error">{error}</p>}
+        {error && !open && <p className="error" aria-live="polite">{error}</p>}
         {loaded && projects.length === 0 && !error && <p className="muted">No projects yet. Create one, or log in as the demo lead.</p>}
         <ul className="project-grid">
           {projects.map((project) => (
@@ -132,7 +136,7 @@ export default function ProjectList() {
                   className="text-btn"
                   onClick={() =>
                     api(`/projects/${project._id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) }).then(() =>
-                      setProjects((current) => current.filter((item) => item._id !== project._id))
+                      queryClient.invalidateQueries({ queryKey: ['projects'] })
                     )
                   }
                 >
@@ -165,7 +169,7 @@ export default function ProjectList() {
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                 />
               </label>
-              {error && <p className="error">{error}</p>}
+              {error && <p className="error" aria-live="polite">{error}</p>}
               <div className="row">
                 <button className="btn" type="submit" disabled={busy}>
                   {busy ? 'Creating…' : 'Create project'}

@@ -134,7 +134,25 @@ export default function PostCard({ post, onChange, onDelete }) {
           </div>
         </form>
       ) : (
-        <p className="post-text">{post.text}</p>
+        <p className="post-text">
+          {post.text.split(/(\s+)/).map((part, index) => {
+            if (/^@[a-z0-9_]{3,20}$/i.test(part)) {
+              return (
+                <span key={index} className="mention">
+                  {part}
+                </span>
+              );
+            }
+            if (/^#[a-z0-9_]{2,30}$/i.test(part)) {
+              return (
+                <span key={index} className="hashtag">
+                  {part}
+                </span>
+              );
+            }
+            return <span key={index}>{part}</span>;
+          })}
+        </p>
       )}
       {post.image && (
         <div className="post-media">

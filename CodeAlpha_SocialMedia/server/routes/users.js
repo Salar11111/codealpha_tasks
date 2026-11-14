@@ -127,16 +127,17 @@ router.post(
     }
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'User not found' });
-    const existing = await Follow.findOne({ follower: req.user._id, following: target._id });
-    if (!existing) {
+    try {
       await Follow.create({ follower: req.user._id, following: target._id });
-      await notifySocial({
-        recipient: target._id,
-        actor: req.user._id,
-        type: 'follow',
-        text: `${req.user.name} followed you`,
-      });
+    } catch (error) {
+      if (error.code === 11000) return res.json({ isFollowing: true });
+      throw error;
     }
+    const io = req.app.get('io');
+    await notifySocial(
+      { recipient: target._id, actor: req.user._id, type: 'follow', text: `${req.user.name} followed you` },
+      io
+    );
     res.json({ isFollowing: true });
   })
 );

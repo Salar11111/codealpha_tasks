@@ -48,10 +48,50 @@ router.patch(
       if (req.body[key] !== undefined) product[key] = String(req.body[key]).trim();
     });
     if (req.body.price !== undefined) product.price = Number(req.body.price);
-    if (req.body.stock !== undefined) product.stock = Number(req.body.stock);
+    if (req.body.stock !== undefined) {
+      // Log stock change history
+      const oldStock = product.stock;
+      product.stock = Number(req.body.stock);
+      await product.save();
+      // Add stock history entry
+      product.stockHistory.push({
+        oldStock,
+        newStock: product.stock,
+        changeType: 'admin_adjust',
+        changedBy: req.user._id,
+        notes: req.body.stockNotes || 'Admin stock adjustment',
+      });
+      await product.save();
+    }
     if (req.body.active !== undefined) product.active = Boolean(req.body.active);
     await product.save();
     res.json({ product });
+  })
+);
+
+router.post(
+  '/products/:id/restock',
+  asyncHandler(async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    const qty = Number(req.body.qty);
+    if (!Number.isFinite(qty) || qty < 1) {
+      return res.status(400).json({ message: 'Valid quantity (1 or more) is required' });
+    }
+    const oldStock = product.stock;
+    product.stock += qty;
+    await product.save();
+    // Add stock history entry
+    product.stockHistory.push({
+      oldStock,
+      newStock: product.stock,
+      changeType: 'restocked',
+      changedBy: req.user._id,
+      notes: req.body.notes || 'Restock received',
+    });
+    await product.save();
+    // TODO: Send restock notifications to subscribed users
+    res.json({ product, oldStock, newStock: product.stock, qtyAdded: qty });
   })
 );
 

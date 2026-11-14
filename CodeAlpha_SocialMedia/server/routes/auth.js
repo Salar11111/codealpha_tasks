@@ -12,6 +12,16 @@ function sign(user) {
   return jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: '7d' });
 }
 
+function authCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
 export function publicUser(user) {
   return {
     id: user._id,
@@ -55,7 +65,9 @@ router.post(
       email,
       password: await bcrypt.hash(password, 10),
     });
-    res.status(201).json({ token: sign(user), user: publicUser(user) });
+    const token = sign(user);
+    res.cookie('token', token, authCookieOptions());
+    res.status(201).json({ token, user: publicUser(user) });
   })
 );
 
@@ -69,7 +81,9 @@ router.post(
     if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-    res.json({ token: sign(user), user: publicUser(user) });
+    const token = sign(user);
+    res.cookie('token', token, authCookieOptions());
+    res.json({ token, user: publicUser(user) });
   })
 );
 
@@ -80,5 +94,10 @@ router.get(
     res.json({ user: publicUser(req.user) });
   })
 );
+
+router.post('/logout', (_req, res) => {
+  res.clearCookie('token', { path: '/' });
+  res.json({ ok: true });
+});
 
 export default router;

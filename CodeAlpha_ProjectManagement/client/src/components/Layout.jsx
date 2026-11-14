@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Bell, Menu, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -113,6 +114,9 @@ export default function Layout({ children }) {
   if (!user) {
     return (
       <div className="shell shell-guest">
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
         <header className="guest-bar">
           <Link to="/" className="brand">
             Keel
@@ -124,7 +128,18 @@ export default function Layout({ children }) {
             </Link>
           </div>
         </header>
-        <main>{children}</main>
+        <AnimatePresence mode="wait">
+          <motion.main
+            id="main-content"
+            key={location.pathname}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
       </div>
     );
   }
@@ -221,7 +236,21 @@ export default function Layout({ children }) {
               </div>
             </div>
           </header>
-          <main>{children}</main>
+          <a className="skip-link" href="#main-content">
+            Skip to content
+          </a>
+          <AnimatePresence mode="wait">
+          <motion.main
+            id="main-content"
+            key={location.pathname}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
         </div>
       </div>
     </WorkspaceContext.Provider>

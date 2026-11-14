@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { X } from 'lucide-react';
 import QtyStepper from './QtyStepper';
 import { useCart } from '../context/CartContext';
 import { bindImgFade, money, onImgLoad } from '../utils';
@@ -10,6 +11,7 @@ export default function CartDrawer() {
   const items = (cart.items || []).filter((item) => item.product);
   const total = items.reduce((sum, item) => sum + item.product.price * item.qty, 0);
 
+  const panelRef = useRef(null);
   useEffect(() => {
     if (!drawerOpen) return undefined;
     closeRef.current?.focus();
@@ -17,6 +19,20 @@ export default function CartDrawer() {
     document.body.style.overflow = 'hidden';
     function onKey(event) {
       if (event.key === 'Escape') closeDrawer();
+      if (event.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelectorAll('button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => {
@@ -30,7 +46,7 @@ export default function CartDrawer() {
   return (
     <div className="drawer" role="dialog" aria-modal="true" aria-label="Cart">
       <button type="button" className="drawer-backdrop" aria-label="Close cart" onClick={closeDrawer} />
-      <aside className="drawer-panel">
+      <aside className="drawer-panel" ref={panelRef}>
         <header className="drawer-head">
           <h2>Your cart</h2>
           <button type="button" className="text-btn" ref={closeRef} onClick={closeDrawer}>
@@ -46,7 +62,7 @@ export default function CartDrawer() {
         <ul className="drawer-list">
           {items.map((item) => (
             <li key={item.product._id}>
-              <img ref={bindImgFade} className="img-fade" src={item.product.image} alt="" onLoad={onImgLoad} />
+              <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={item.product.image} alt="" onLoad={onImgLoad} />
               <div>
                 <Link to={`/products/${item.product._id}`} onClick={closeDrawer}>
                   <strong>{item.product.name}</strong>

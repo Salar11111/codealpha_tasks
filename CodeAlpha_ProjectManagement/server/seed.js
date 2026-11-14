@@ -5,43 +5,38 @@ import User from './models/User.js';
 import Project from './models/Project.js';
 import Task from './models/Task.js';
 import Comment from './models/Comment.js';
-import Notification from './models/Notification.js';
 
 await connectDB();
 const password = await bcrypt.hash('password123', 10);
 
 const demo = await User.findOneAndUpdate(
   { email: 'demo@codealpha.dev' },
-  { name: 'Demo Lead', email: 'demo@codealpha.dev', password },
-  { upsert: true, new: true }
+  { $setOnInsert: { name: 'Demo Lead', email: 'demo@codealpha.dev', password } },
+  { upsert: true, new: true, setDefaultsOnInsert: true }
 );
 const avery = await User.findOneAndUpdate(
   { email: 'avery@codealpha.dev' },
-  { name: 'Avery Cole', email: 'avery@codealpha.dev', password },
-  { upsert: true, new: true }
+  { $setOnInsert: { name: 'Avery Cole', email: 'avery@codealpha.dev', password } },
+  { upsert: true, new: true, setDefaultsOnInsert: true }
 );
-
-const owned = await Project.find({ owner: demo._id }).select('_id');
-const ownedIds = owned.map((project) => project._id);
-const staleTasks = await Task.find({ project: { $in: ownedIds } }).select('_id');
-await Comment.deleteMany({ task: { $in: staleTasks.map((task) => task._id) } });
-await Task.deleteMany({ project: { $in: ownedIds } });
-await Project.deleteMany({ owner: demo._id });
-await Notification.deleteMany({ recipient: { $in: [demo._id, avery._id] } });
 
 function utcDay(offset) {
   const now = new Date();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset));
 }
 
-const project = await Project.create({
-  name: 'Website launch',
-  description: 'Get the new marketing site live with copy, design, and a final check.',
-  owner: demo._id,
-  members: [demo._id, avery._id],
-});
+const project = await Project.findOneAndUpdate(
+  { name: 'Website launch', owner: demo._id },
+  {
+    $setOnInsert: {
+      description: 'Get the new marketing site live with copy, design, and a final check.',
+      members: [demo._id, avery._id],
+    },
+  },
+  { upsert: true, new: true, setDefaultsOnInsert: true }
+);
 
-const cards = await Task.insertMany([
+const cards = await Promise.all([
   {
     project: project._id,
     title: 'Write the homepage',
@@ -90,13 +85,19 @@ const cards = await Task.insertMany([
     assignees: [demo._id],
     createdBy: avery._id,
   },
-]);
+].map((task) =>
+  Task.findOneAndUpdate(
+    { project: project._id, title: task.title },
+    { $setOnInsert: task },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  )
+));
 
-await Comment.create({
-  task: cards[2]._id,
-  author: avery._id,
-  text: 'Columns are in. I’ll tighten the card spacing next.',
-});
+await Comment.findOneAndUpdate(
+  { task: cards[2]._id, author: avery._id, text: 'Columns are in. I’ll tighten the card spacing next.' },
+  { $setOnInsert: {} },
+  { upsert: true, new: true, setDefaultsOnInsert: true }
+);
 
 console.log('Seeded Keel. password123 — demo@codealpha.dev and avery@codealpha.dev');
 process.exit(0);

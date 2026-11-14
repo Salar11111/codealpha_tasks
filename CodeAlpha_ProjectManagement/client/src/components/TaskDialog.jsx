@@ -16,6 +16,7 @@ export default function TaskDialog({ task, members, liveComment, onClose, onTask
   const [showLabels, setShowLabels] = useState(false);
   const chain = useRef(Promise.resolve());
   const [entered, setEntered] = useState(false);
+  const dialogRef = useRef(null);
   const labels = task.labels || [];
   const checklist = task.checklist || [];
   const checkDone = checklist.filter((item) => item.done).length;
@@ -31,6 +32,20 @@ export default function TaskDialog({ task, members, liveComment, onClose, onTask
   useEffect(() => {
     function onKey(event) {
       if (event.key === 'Escape') onClose();
+      if (event.key !== 'Tab') return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = dialog.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -134,6 +149,7 @@ export default function TaskDialog({ task, members, liveComment, onClose, onTask
   return (
     <div className={`drawer-back${entered ? ' open' : ''}`} onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className={`card-modal${entered ? ' open' : ''}`}
         role="dialog"
         aria-modal="true"

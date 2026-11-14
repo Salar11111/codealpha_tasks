@@ -11,4 +11,7 @@ const projectSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+projectSchema.index({ members: 1, archived: 1, updatedAt: -1 });
+projectSchema.index({ owner: 1 });
+
 export default mongoose.model('Project', projectSchema);

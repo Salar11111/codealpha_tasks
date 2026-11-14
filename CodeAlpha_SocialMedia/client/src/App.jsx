@@ -1,20 +1,22 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Feed from './pages/Feed';
-import People from './pages/People';
-import Profile from './pages/Profile';
-import EditProfile from './pages/EditProfile';
-import Saved from './pages/Saved';
-import FollowList from './pages/FollowList';
-import AuthForm from './pages/AuthForm';
+const Feed = lazy(() => import('./pages/Feed'));
+const People = lazy(() => import('./pages/People'));
+const Profile = lazy(() => import('./pages/Profile'));
+const EditProfile = lazy(() => import('./pages/EditProfile'));
+const Saved = lazy(() => import('./pages/Saved'));
+const FollowList = lazy(() => import('./pages/FollowList'));
+const AuthForm = lazy(() => import('./pages/AuthForm'));
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
+        <Suspense fallback={<div className="state-panel">Loading…</div>}>
+          <Routes>
           <Route element={<Layout />}>
             <Route path="/login" element={<AuthForm mode="login" />} />
             <Route path="/register" element={<AuthForm mode="register" />} />
@@ -68,6 +70,7 @@ export default function App() {
             />
           </Route>
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );
