@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --replSet rs0
+          --bind_ip_all
+          --health-cmd "mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate({ _id: \"rs0\", members: [{ _id: 0, host: \"localhost:27017\" }] }).ok }'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      JWT_SECRET: ci-test-secret-at-least-32-characters-long
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install server dependencies
+        run: |
+          npm --prefix CodeAlpha_EcommerceStore/server ci
+          npm --prefix CodeAlpha_SocialMedia/server ci
+          npm --prefix CodeAlpha_ProjectManagement/server ci
+
+      - name: Install client dependencies
+        run: |
+          npm --prefix CodeAlpha_EcommerceStore/client ci
+          npm --prefix CodeAlpha_SocialMedia/client ci
+          npm --prefix CodeAlpha_ProjectManagement/client ci
+
+      - name: Run Ecommerce API tests
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017/codealpha_ecommerce_test?replicaSet=rs0
+          NODE_ENV: test
+        run: npm --prefix CodeAlpha_EcommerceStore/server test
+
+      - name: Run SocialMedia API tests
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017/codealpha_social_test?replicaSet=rs0
+          NODE_ENV: test
+        run: npm --prefix CodeAlpha_SocialMedia/server test
+
+      - name: Run ProjectManagement API tests
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017/codealpha_projects_test?replicaSet=rs0
+          NODE_ENV: test
+        run: npm --prefix CodeAlpha_ProjectManagement/server test
+
+      - name: Build clients
+        run: |
+          npm --prefix CodeAlpha_EcommerceStore/client run build
+          npm --prefix CodeAlpha_SocialMedia/client run build
+          npm --prefix CodeAlpha_ProjectManagement/client run build

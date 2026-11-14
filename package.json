@@ -1,0 +1,10 @@
+{
+  "name": "codealpha_tasks",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "lint": "npm --prefix CodeAlpha_EcommerceStore/server run lint && npm --prefix CodeAlpha_SocialMedia/server run lint && npm --prefix CodeAlpha_ProjectManagement/server run lint",
+    "test": "npm --prefix CodeAlpha_EcommerceStore/server test && npm --prefix CodeAlpha_SocialMedia/server test && npm --prefix CodeAlpha_ProjectManagement/server test",
+    "build": "npm --prefix CodeAlpha_EcommerceStore/client run build && npm --prefix CodeAlpha_SocialMedia/client run build && npm --prefix CodeAlpha_ProjectManagement/client run build"
+  }
+}

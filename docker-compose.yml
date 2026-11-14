@@ -1,0 +1,83 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] }).ok }'
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ecommerce-api:
+    build: ./CodeAlpha_EcommerceStore/server
+    environment:
+      MONGO_URI: mongodb://mongo:27017/codealpha_ecommerce?replicaSet=rs0
+      JWT_SECRET: change-me-to-a-long-random-secret-at-least-32-chars
+      CLIENT_URL: http://localhost:5173
+      PORT: 5001
+      NODE_ENV: production
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  social-api:
+    build: ./CodeAlpha_SocialMedia/server
+    environment:
+      MONGO_URI: mongodb://mongo:27017/codealpha_social?replicaSet=rs0
+      JWT_SECRET: change-me-to-a-long-random-secret-at-least-32-chars
+      CLIENT_URL: http://localhost:5174
+      PORT: 5002
+      NODE_ENV: production
+    ports:
+      - "5002:5002"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  projects-api:
+    build: ./CodeAlpha_ProjectManagement/server
+    environment:
+      MONGO_URI: mongodb://mongo:27017/codealpha_projects?replicaSet=rs0
+      JWT_SECRET: change-me-to-a-long-random-secret-at-least-32-chars
+      CLIENT_URL: http://localhost:5175
+      PORT: 5003
+      NODE_ENV: production
+    ports:
+      - "5003:5003"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  ecommerce-web:
+    build: ./CodeAlpha_EcommerceStore/client
+    ports:
+      - "5173:80"
+    depends_on:
+      - ecommerce-api
+
+  social-web:
+    build: ./CodeAlpha_SocialMedia/client
+    ports:
+      - "5174:80"
+    depends_on:
+      - social-api
+
+  projects-web:
+    build: ./CodeAlpha_ProjectManagement/client
+    ports:
+      - "5175:80"
+    depends_on:
+      - projects-api
+
+volumes:
+  mongo_data:
