@@ -112,7 +112,7 @@ $env:JWT_SECRET='local-test-secret-at-least-32-characters'
 npm --prefix CodeAlpha_EcommerceStore/server test
 ```
 
-Use the same pattern with `codealpha_social_test` and `codealpha_projects_test` for the other two suites. CI (`.github/workflows/ci.yml`) does this automatically with a MongoDB service container.
+Use the same pattern with `codealpha_social_test` and `codealpha_projects_test` for the other two suites. CI (`.github/workflows/ci.yml`) does this automatically with a single-node MongoDB replica set running in Docker.
 
 ## Repository layout
 
