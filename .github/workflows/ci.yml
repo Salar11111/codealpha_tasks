@@ -32,6 +32,7 @@ jobs:
 
       - name: Install server dependencies
         run: |
+          npm ci
           npm --prefix CodeAlpha_EcommerceStore/server ci
           npm --prefix CodeAlpha_SocialMedia/server ci
           npm --prefix CodeAlpha_ProjectManagement/server ci
@@ -41,6 +42,12 @@ jobs:
           npm --prefix CodeAlpha_EcommerceStore/client ci
           npm --prefix CodeAlpha_SocialMedia/client ci
           npm --prefix CodeAlpha_ProjectManagement/client ci
+
+      - name: Lint servers
+        run: npm run lint:server
+
+      - name: Lint clients
+        run: npm run lint:client
 
       - name: Run Ecommerce API tests
         env:
