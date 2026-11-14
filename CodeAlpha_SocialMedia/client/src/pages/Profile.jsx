@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import Avatar from '../components/Avatar';
 import PostCard from '../components/PostCard';
 import { SkeletonProfile } from '../components/Skeleton';
-import { User, Check, X } from 'lucide-react';
+import { User } from 'lucide-react';
 
 export default function Profile() {
   const { username } = useParams();

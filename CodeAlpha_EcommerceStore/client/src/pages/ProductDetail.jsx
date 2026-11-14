@@ -78,7 +78,7 @@ export default function ProductDetail() {
         body: JSON.stringify({ productId, email: notifyEmail }),
       });
       setNotifyEmail('');
-      alert(`Thank you! You'll be notified when ${product.name} is back in stock.`);
+      alert(data.message || `Thank you! You'll be notified when ${product.name} is back in stock.`);
     } catch (err) {
       setError(err.message);
     }

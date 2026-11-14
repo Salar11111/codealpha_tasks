@@ -54,7 +54,17 @@ export default function Admin() {
     event.preventDefault();
     setError('');
     setNotice('');
-    createMutation.mutate(form);
+    const price = Number(form.price);
+    const stock = Number(form.stock);
+    if (!Number.isFinite(price) || price <= 0) {
+      setError('Price must be greater than zero.');
+      return;
+    }
+    if (!Number.isInteger(stock) || stock < 0) {
+      setError('Stock must be a whole number of zero or more.');
+      return;
+    }
+    createMutation.mutate({ ...form, name: form.name.trim(), price, stock });
   }
 
   return (
@@ -66,6 +76,9 @@ export default function Admin() {
           <label key={field}>
             {field}
             <input
+              type={field === 'price' || field === 'stock' ? 'number' : 'text'}
+              min={field === 'price' ? '0.01' : field === 'stock' ? '0' : undefined}
+              step={field === 'price' ? '0.01' : field === 'stock' ? '1' : undefined}
               value={form[field]}
               onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
               required

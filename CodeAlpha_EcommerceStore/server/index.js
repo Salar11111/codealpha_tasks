@@ -42,7 +42,18 @@ app.post('/api/restock-notifications', asyncHandler(async (req, res) => {
   res.json({ ok: true, message: 'You will be notified when this product is back in stock.' });
 }));
 
-app.use('/api/auth', authRoutes);
+app.use((req, res) => {
+  res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
+});
+
+app.use((err, _req, res, _next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ message: 'Invalid JSON body' });
+  }
+  console.error(err);
+  const status = err.status && err.status < 500 ? err.status : 500;
+  return res.status(status).json({ message: status < 500 ? err.message : 'Server error' });
+});
 
 const port = process.env.PORT || 5001;
 if (!process.env.MONGO_URI) throw new Error('MONGO_URI is required');

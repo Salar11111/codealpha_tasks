@@ -273,7 +273,7 @@ export default function Home() {
             >
               <div className="card-media">
                 <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={product.image} alt="" onLoad={onImgLoad} />
-                <span className="stock-badge status-{getStockStatusClass(product.stock)}">
+                <span className={`stock-badge status-${getStockStatusClass(product.stock)}`}>
                   {getStockStatusLabel(product.stock)}
                 </span>
                 <button

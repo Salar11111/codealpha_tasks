@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
-  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     api('/auth/me')
@@ -18,12 +17,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setSocket(null);
-      return undefined;
-    }
-    const next = io({ withCredentials: true, auth: { token: localStorage.getItem('token') } });
-    setSocket(next);
+    if (!user) return undefined;
+    const next = io({ withCredentials: true });
 
     next.on('notification:new', (note) => {
       setNotifications((prev) => [note, ...prev].slice(0, 50));

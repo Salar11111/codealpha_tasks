@@ -5,7 +5,7 @@ import { money } from '../utils';
 
 export default function Orders() {
   const location = useLocation();
-  const { data, error, isLoading } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ['orders'],
     queryFn: () => api('/orders').then((result) => result.orders),
   });
