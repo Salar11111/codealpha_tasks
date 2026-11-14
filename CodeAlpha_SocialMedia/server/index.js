@@ -16,6 +16,7 @@ import userRoutes from './routes/users.js';
 import notificationRoutes from './routes/notifications.js';
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5174', credentials: true }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));

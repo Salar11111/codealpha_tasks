@@ -40,6 +40,8 @@ services:
       NODE_ENV: production
     ports:
       - "5002:5002"
+    volumes:
+      - social_uploads:/app/uploads
     depends_on:
       mongo:
         condition: service_healthy
@@ -81,3 +83,4 @@ services:
 
 volumes:
   mongo_data:
+  social_uploads:

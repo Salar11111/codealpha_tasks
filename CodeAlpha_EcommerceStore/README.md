@@ -51,7 +51,7 @@ copy .env.example server\.env
 
 | Variable | Purpose |
 | --- | --- |
-| `MONGO_URI` | Mongo connection string. Default database name: `codealpha_ecommerce` |
+| `MONGO_URI` | Mongo connection string. Default database name: `codealpha_ecommerce` (needs `?replicaSet=rs0` for checkout) |
 | `JWT_SECRET` | Secret used to sign login tokens |
 | `CLIENT_URL` | Frontend origin allowed by CORS (`http://localhost:5173`) |
 | `PORT` | API port (`5001`) |

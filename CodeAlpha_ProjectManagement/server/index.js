@@ -16,6 +16,7 @@ import taskRoutes from './routes/tasks.js';
 import notificationRoutes from './routes/notifications.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const origin = process.env.CLIENT_URL || 'http://localhost:5175';
 app.use(helmet());
 app.use(cors({ origin, credentials: true }));

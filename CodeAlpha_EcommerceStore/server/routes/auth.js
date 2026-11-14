@@ -54,7 +54,7 @@ router.post(
     const user = await User.create({ name, email, password: await bcrypt.hash(password, 10) });
     const token = sign(user);
     res.cookie('token', token, authCookieOptions());
-    res.status(201).json({ token, user: publicUser(user) });
+    res.status(201).json({ user: publicUser(user) });
   })
 );
 
@@ -70,7 +70,7 @@ router.post(
     }
     const token = sign(user);
     res.cookie('token', token, authCookieOptions());
-    res.json({ token, user: publicUser(user) });
+    res.json({ user: publicUser(user) });
   })
 );
 

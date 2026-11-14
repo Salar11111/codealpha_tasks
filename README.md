@@ -29,7 +29,7 @@ Browser (React + Vite)
 - **Clients** are React 18 apps built with Vite. The shop uses React Query and a cart context, the social app uses React Query plus Socket.io, and the project board uses dnd-kit with Socket.io rooms.
 - **Servers** are Express APIs with Mongoose models, JWT authentication, bcrypt password hashing, Helmet, rate limiting, and input sanitising.
 - **Database** is MongoDB. Checkout uses a transaction, so the shop needs a replica set (a single-node set is enough).
-- **CI** runs ESLint for all servers and clients, the API test suites against a MongoDB replica set, and production builds for all three clients.
+- **CI** runs ESLint for all servers and clients, the API test suites against a MongoDB replica set, production builds for all three clients, and a Docker Compose image build.
 
 ## Quick start with Docker
 
