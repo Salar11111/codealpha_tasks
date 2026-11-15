@@ -62,8 +62,8 @@ export default function ProductCard({ product, className, imageClassName }) {
   }
 
   return (
-    <article className={cn('group relative flex flex-col', className)}>
-      <div className="relative overflow-hidden bg-paper-deep">
+    <article className={cn('relative flex flex-col reveal', className)}>
+      <div className="relative overflow-hidden bg-paper-deep card">
         <Link
           to={`/products/${product.slug}`}
           className={cn('block aspect-[4/5] overflow-hidden', imageClassName)}
@@ -73,7 +73,7 @@ export default function ProductCard({ product, className, imageClassName }) {
             src={images[0]}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.045]"
+            className="h-full w-full object-cover transition-transform duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
           />
           {secondary && (
             <img
@@ -81,7 +81,7 @@ export default function ProductCard({ product, className, imageClassName }) {
               alt=""
               aria-hidden="true"
               loading="lazy"
-              className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+              className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500"
             />
           )}
         </Link>

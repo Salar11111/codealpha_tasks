@@ -4,7 +4,7 @@
   --font-sans: 'Geist Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: 'Playfair Display Variable', 'Playfair Display', Georgia, 'Times New Roman', serif;
 
-  --color-paper: #f5f1e8;
+  --color-paper: #faf8f5;
   --color-paper-deep: #ece5d7;
   --color-surface: #fffdf8;
   --color-ink: #1c1a16;
@@ -14,12 +14,13 @@
   --color-brand: #a34e2d;
   --color-brand-dark: #853d20;
   --color-clay: #c9906f;
+  --color-terracotta: #c45929;
   --color-forest: #3b453a;
   --color-sand: #e4d8c5;
 
   --shadow-soft: 0 30px 70px -40px rgba(28, 26, 22, 0.5);
-
-  --animate-marquee: marquee 38s linear infinite;
+  --shadow-mellow: 0 10px 30px -10px rgba(28, 26, 22, 0.35);
+  --shadow-elevated: 0 20px 40px -15px rgba(28, 26, 22, 0.4);
 }
 
 @keyframes marquee {
@@ -156,11 +157,11 @@
   }
 
   .field {
-    @apply h-11 w-full border border-line bg-surface px-3.5 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-ink;
+    @apply h-11 w-full border border-line bg-surface px-3.5 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30;
   }
 
   .field-area {
-    @apply w-full border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-ink;
+    @apply w-full border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30;
   }
 
   .hairline {
@@ -209,7 +210,36 @@
   animation: dialog-out 0.2s ease both;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.2s;
+/* Reveal entrance animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Card styles - use data-state instead of group selector */
+.card {
+  @apply bg-surface border border-line rounded-lg transition-all border-yellow-300/10 hover:border-brand/15 hover:shadow-mellow active:shadow-elevated;
+}
+
+.card-image {
+  @apply overflow-hidden rounded-t-lg transition-transform duration-500;
+}
+
+.card-title {
+  @apply text-[14px] font-medium leading-snug text-ink;
+}
+
+.card-price {
+  @apply text-[20px] font-serif font-normal text-ink;
+}
+
+/* Hover effect on card image - use parent hover via direct selector */
+.product-card-wrapper:hover .card-image {
+  transform: scale-[1.02];
 }
