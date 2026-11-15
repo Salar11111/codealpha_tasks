@@ -46,7 +46,8 @@ copy .env.example server\.env
 | --- | --- |
 | `MONGO_URI` | Mongo connection string. Default database name: `codealpha_projects` |
 | `JWT_SECRET` | Secret used to sign login tokens |
-| `CLIENT_URL` | Frontend origin allowed by CORS (`http://localhost:5175`) |
+| `CLIENT_URL` | Frontend origin(s) allowed by CORS (`http://localhost:5175`; comma-separated for more) |
+| `COOKIE_SAMESITE` | Session cookie policy: `lax` (default) or `none` for split-domain HTTPS |
 | `PORT` | API port (`5003`) |
 
 ```bash

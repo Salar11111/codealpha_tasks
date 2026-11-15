@@ -48,7 +48,7 @@ The stack starts a single-node MongoDB replica set (`rs0`), one API per app, and
 
 ## Manual setup
 
-Requirements: Node.js 18+ and MongoDB. The shop needs MongoDB running as a replica set:
+Requirements: Node.js 20+ (the root lint tooling needs 20.19+) and MongoDB. The shop needs MongoDB running as a replica set:
 
 ```bash
 # Either use the Compose database on its own
@@ -114,6 +114,14 @@ npm --prefix CodeAlpha_EcommerceStore/server test
 
 Use the same pattern with `codealpha_social_test` and `codealpha_projects_test` for the other two suites. CI (`.github/workflows/ci.yml`) does this automatically with a single-node MongoDB replica set running in Docker.
 
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the production checklist: Docker Compose on a VPS, HTTPS, MongoDB replica sets, uploads, cross-site cookies and CORS, and Render/Railway notes. Each app's `CLIENT_URL` accepts a comma-separated list of origins, and `COOKIE_SAMESITE=none` enables HTTPS split-domain sessions.
+
+## License
+
+[MIT](LICENSE) © 2026 Muhammad Abubakar Salar
+
 ## Repository layout
 
 ```text
@@ -123,4 +131,6 @@ CodeAlpha_ProjectManagement/ Keel boards (client, server, docs)
 .github/workflows/ci.yml     Lint, test, and build pipeline
 docker-compose.yml           MongoDB replica set, APIs, and web clients
 eslint.config.js             Shared client lint rules
+DEPLOYMENT.md                Production deployment guide
+LICENSE                      MIT license
 ```

@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { io } from 'socket.io-client';
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || undefined;
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -18,7 +20,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!user) return undefined;
-    const next = io({ withCredentials: true });
+    const next = io(SOCKET_URL, { withCredentials: true });
 
     next.on('notification:new', (note) => {
       setNotifications((prev) => [note, ...prev].slice(0, 50));

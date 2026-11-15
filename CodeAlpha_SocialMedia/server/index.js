@@ -18,7 +18,11 @@ import notificationRoutes from './routes/notifications.js';
 const app = express();
 app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5174', credentials: true }));
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5174')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));
 app.use(mongoSanitize());
 app.use(hpp());
@@ -39,9 +43,8 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ message: status === 400 ? 'Invalid id' : 'Server error' });
 });
 
-const origin = process.env.CLIENT_URL || 'http://localhost:5174';
 const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin, credentials: true } });
+const io = new Server(httpServer, { cors: { origin: allowedOrigins, credentials: true } });
 app.set('io', io);
 
 function readCookieFromHeader(header, name) {

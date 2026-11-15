@@ -17,9 +17,12 @@ import notificationRoutes from './routes/notifications.js';
 
 const app = express();
 app.set('trust proxy', 1);
-const origin = process.env.CLIENT_URL || 'http://localhost:5175';
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5175')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 app.use(helmet());
-app.use(cors({ origin, credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));
 app.use(mongoSanitize());
 app.use(hpp());
@@ -40,7 +43,7 @@ app.use((err, _req, res, _next) => {
 });
 
 const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin, credentials: true } });
+const io = new Server(httpServer, { cors: { origin: allowedOrigins, credentials: true } });
 app.set('io', io);
 
 function readCookieFromHeader(header, name) {

@@ -6,6 +6,8 @@ import { when } from '../utils';
 import Avatar from './Avatar';
 import { IconBookmark, IconComment, IconHeart } from './icons';
 
+const UPLOADS_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 export default function PostCard({ post, onChange, onDelete }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -156,7 +158,7 @@ export default function PostCard({ post, onChange, onDelete }) {
       )}
       {post.image && (
         <div className="post-media">
-          <img className="post-image" src={post.image} alt="" loading="lazy" decoding="async" />
+          <img className="post-image" src={post.image.startsWith('/uploads/') ? `${UPLOADS_BASE}${post.image}` : post.image} alt="" loading="lazy" decoding="async" />
         </div>
       )}
       <div className="post-actions">

@@ -13,10 +13,12 @@ function sign(user) {
 }
 
 function authCookieOptions() {
+  const requested = (process.env.COOKIE_SAMESITE || 'lax').toLowerCase();
+  const sameSite = ['lax', 'strict', 'none'].includes(requested) ? requested : 'lax';
   return {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite,
+    secure: process.env.NODE_ENV === 'production' || sameSite === 'none',
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
