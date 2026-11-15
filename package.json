@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "version": "1.0.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "install:all": "npm install && npm --prefix CodeAlpha_EcommerceStore/server install && npm --prefix CodeAlpha_EcommerceStore/client install && npm --prefix CodeAlpha_SocialMedia/server install && npm --prefix CodeAlpha_SocialMedia/client install && npm --prefix CodeAlpha_ProjectManagement/server install && npm --prefix CodeAlpha_ProjectManagement/client install",
     "lint": "npm run lint:server && npm run lint:client",
@@ -12,8 +16,8 @@
     "build": "npm --prefix CodeAlpha_EcommerceStore/client run build && npm --prefix CodeAlpha_SocialMedia/client run build && npm --prefix CodeAlpha_ProjectManagement/client run build"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "eslint": "^9.39.5",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.14.0"
   }
