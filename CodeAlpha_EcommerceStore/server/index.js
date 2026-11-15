@@ -14,6 +14,7 @@ import orderRoutes from './routes/orders.js';
 import reviewRoutes from './routes/reviews.js';
 import wishlistRoutes from './routes/wishlist.js';
 import adminRoutes from './routes/admin.js';
+import newsletterRoutes from './routes/newsletter.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -37,6 +38,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 // Restock notifications - public endpoint
 app.post('/api/restock-notifications', asyncHandler(async (req, res) => {
   const { productId, email } = req.body;

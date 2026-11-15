@@ -17,13 +17,22 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <section className="state-panel">
-          <h1>Something went wrong.</h1>
-          <p className="muted">Refresh the page or try again later.</p>
-          <button type="button" className="btn" onClick={() => window.location.reload()}>
-            Reload
-          </button>
-        </section>
+        <div className="flex min-h-screen items-center justify-center bg-paper px-5">
+          <div className="w-full max-w-md border border-line bg-surface p-8 text-center">
+            <p className="eyebrow">Something broke</p>
+            <h1 className="mt-3 text-3xl">The page came apart.</h1>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Refresh to try again. If it keeps happening, the API may be offline.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-6 h-11 bg-ink px-6 text-sm font-medium text-paper transition-colors hover:bg-brand"
+            >
+              Reload the page
+            </button>
+          </div>
+        </div>
       );
     }
     return this.props.children;

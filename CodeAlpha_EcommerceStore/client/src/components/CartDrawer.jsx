@@ -1,99 +1,191 @@
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { ArrowRight, Minus, ShoppingBag, Truck, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import QtyStepper from './QtyStepper';
+import { toast } from 'sonner';
 import { useCart } from '../context/CartContext';
-import { bindImgFade, money, onImgLoad } from '../utils';
+import { money } from '../lib/utils';
+import { buttonVariants } from './ui/button';
+import QuantityStepper from './QuantityStepper';
 
 export default function CartDrawer() {
-  const { cart, drawerOpen, closeDrawer, setQty, removeItem } = useCart();
-  const closeRef = useRef(null);
-  const items = (cart.items || []).filter((item) => item.product);
-  const total = items.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+  const { items, summary, count, drawerOpen, closeDrawer, setQty, removeItem } = useCart();
+  const [error, setError] = useState('');
+  const [busyKey, setBusyKey] = useState('');
 
-  const panelRef = useRef(null);
-  useEffect(() => {
-    if (!drawerOpen) return undefined;
-    closeRef.current?.focus();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    function onKey(event) {
-      if (event.key === 'Escape') closeDrawer();
-      if (event.key !== 'Tab') return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusable = panel.querySelectorAll('button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
+  async function change(line, qty) {
+    setError('');
+    setBusyKey(line.key);
+    try {
+      await setQty(line, qty);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyKey('');
     }
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [drawerOpen, closeDrawer]);
+  }
 
-  if (!drawerOpen) return null;
+  async function remove(line) {
+    setError('');
+    setBusyKey(line.key);
+    try {
+      await removeItem(line);
+      toast.success('Removed from your bag.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyKey('');
+    }
+  }
+
+  const progress = Math.min(100, Math.round((summary.subtotal / summary.freeShippingThreshold) * 100));
 
   return (
-    <div className="drawer" role="dialog" aria-modal="true" aria-label="Cart">
-      <button type="button" className="drawer-backdrop" aria-label="Close cart" onClick={closeDrawer} />
-      <aside className="drawer-panel" ref={panelRef}>
-        <header className="drawer-head">
-          <h2>Your cart</h2>
-          <button type="button" className="text-btn" ref={closeRef} onClick={closeDrawer}>
-            Close
-          </button>
-        </header>
-        {items.length === 0 && (
-          <div className="drawer-empty">
-            <p>Nothing here yet.</p>
-            <p className="hint">Add a piece from the shop to see it here.</p>
+    <DialogPrimitive.Root open={drawerOpen} onOpenChange={(open) => (open ? null : closeDrawer())}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="dialog-overlay fixed inset-0 z-50 bg-ink/45 backdrop-blur-[2px]" />
+        <DialogPrimitive.Content className="drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-[440px] flex-col bg-surface shadow-soft">
+          <DialogPrimitive.Title className="sr-only">Your bag</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">
+            Review the items in your shopping bag before checkout.
+          </DialogPrimitive.Description>
+
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <div>
+              <p className="eyebrow">Your bag</p>
+              <p className="mt-1 text-sm text-muted">
+                {count === 0 ? 'Nothing here yet' : `${count} ${count === 1 ? 'piece' : 'pieces'}`}
+              </p>
+            </div>
+            <DialogPrimitive.Close
+              className="flex h-9 w-9 items-center justify-center text-muted transition-colors hover:text-ink"
+              aria-label="Close bag"
+            >
+              <X className="h-4 w-4" />
+            </DialogPrimitive.Close>
           </div>
-        )}
-        <ul className="drawer-list">
-          {items.map((item) => (
-            <li key={item.product._id}>
-              <img loading="lazy" decoding="async" ref={bindImgFade} className="img-fade" src={item.product.image} alt="" onLoad={onImgLoad} />
-              <div>
-                <Link to={`/products/${item.product._id}`} onClick={closeDrawer}>
-                  <strong>{item.product.name}</strong>
-                </Link>
-                <p>{money(item.product.price)}</p>
-                <QtyStepper
-                  value={item.qty}
-                  max={item.product.stock}
-                  onChange={(next) => setQty(item.product._id, next)}
+
+          {items.length > 0 && (
+            <div className="border-b border-line px-5 py-4">
+              <p className="flex items-center gap-2 text-xs text-muted">
+                <Truck className="h-3.5 w-3.5 text-ink" />
+                {summary.freeShippingRemaining > 0
+                  ? `${money(summary.freeShippingRemaining)} away from complimentary shipping.`
+                  : 'Complimentary shipping unlocked.'}
+              </p>
+              <div className="mt-2.5 h-[3px] w-full bg-line">
+                <div
+                  className="h-full bg-brand transition-[width] duration-500"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-              <button type="button" className="text-btn" onClick={() => removeItem(item.product._id)}>
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-        {items.length > 0 && (
-          <footer className="drawer-foot">
-            <p className="total-line">
-              <span>Subtotal</span>
-              <strong>{money(total)}</strong>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto">
+            {items.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full border border-line">
+                  <ShoppingBag className="h-6 w-6 text-muted" strokeWidth={1.4} />
+                </span>
+                <h3 className="mt-5 text-2xl">Your bag is empty.</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  Start with the pieces we make most often, or browse the full collection.
+                </p>
+                <Link
+                  to="/shop"
+                  onClick={closeDrawer}
+                  className={buttonVariants({ variant: 'primary', size: 'md' }) + ' mt-6'}
+                >
+                  Browse the collection
+                </Link>
+              </div>
+            ) : (
+              <ul className="divide-y divide-line">
+                {items.map((line) => (
+                  <li key={line.key} className="flex gap-4 px-5 py-5">
+                    <Link
+                      to={`/products/${line.slug}`}
+                      onClick={closeDrawer}
+                      className="block h-[104px] w-20 shrink-0 overflow-hidden bg-paper-deep"
+                    >
+                      <img src={line.image} alt={line.name} className="h-full w-full object-cover" />
+                    </Link>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted">{line.brand}</p>
+                          <Link
+                            to={`/products/${line.slug}`}
+                            onClick={closeDrawer}
+                            className="mt-0.5 block truncate text-[13.5px] font-medium hover:text-brand"
+                          >
+                            {line.name}
+                          </Link>
+                          <p className="mt-1 text-xs text-muted">
+                            {line.color} · {line.size}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[13px]">{money(line.price * line.qty)}</span>
+                      </div>
+
+                      <div className="mt-auto flex items-center justify-between pt-3">
+                        <QuantityStepper
+                          value={line.qty}
+                          max={Math.max(1, line.stock)}
+                          onChange={(qty) => change(line, qty)}
+                          disabled={busyKey === line.key}
+                          className="h-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => remove(line)}
+                          disabled={busyKey === line.key}
+                          className="inline-flex items-center gap-1 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-40"
+                        >
+                          <Minus className="h-3 w-3" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {error && (
+            <p className="border-t border-brand/20 bg-brand/5 px-5 py-2 text-xs text-brand" role="alert">
+              {error}
             </p>
-            <Link to="/checkout" className="btn" onClick={closeDrawer}>
-              Checkout
-            </Link>
-            <Link to="/cart" className="text-link" onClick={closeDrawer}>
-              View full cart
-            </Link>
-          </footer>
-        )}
-      </aside>
-    </div>
+          )}
+
+          {items.length > 0 && (
+            <div className="border-t border-line bg-paper/50 px-5 py-5">
+              <div className="flex items-baseline justify-between text-sm">
+                <span>Subtotal</span>
+                <span className="text-base">{money(summary.subtotal)}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted">Shipping and tax calculated at checkout.</p>
+              <Link
+                to="/checkout"
+                onClick={closeDrawer}
+                className={buttonVariants({ variant: 'primary', size: 'lg' }) + ' mt-4 w-full'}
+              >
+                Checkout
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/cart"
+                onClick={closeDrawer}
+                className="mt-3 block text-center text-[12px] underline decoration-line underline-offset-4 transition-colors hover:text-brand"
+              >
+                View bag
+              </Link>
+            </div>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

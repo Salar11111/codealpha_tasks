@@ -1,94 +1,35 @@
-import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Navigate } from 'react-router-dom';
+import AuthPanel from '../components/auth/AuthPanel';
 import { useAuth } from '../context/AuthContext';
 
-const loginSchema = z.object({
-  email: z.string().email('A valid email is required'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-const registerSchema = loginSchema.extend({
-  name: z.string().trim().min(1, 'Name is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
 export default function AuthForm({ mode }) {
-  const isLogin = mode === 'login';
-  const [showPassword, setShowPassword] = useState(false);
-  const { user, login, register } = useAuth();
-  const navigate = useNavigate();
-  const schema = isLogin ? loginSchema : registerSchema;
-  const {
-    register: field,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(schema), defaultValues: { name: '', email: '', password: '' } });
+  const { user, loading } = useAuth();
 
-  if (user) return <Navigate to="/" replace />;
-
-  async function onSubmit(values) {
-    try {
-      if (isLogin) await login(values.email, values.password);
-      else await register(values.name, values.email, values.password);
-      navigate('/');
-    } catch (err) {
-      setError('root', { message: err.message || 'Something went wrong. Try again.' });
-    }
-  }
+  if (!loading && user) return <Navigate to="/" replace />;
 
   return (
-    <section className="auth-layout">
-      <div className="auth-poster">
-        <p className="eyebrow">Northline account</p>
-        <h1>{isLogin ? 'Welcome back.' : 'Open a shopper account.'}</h1>
-        <p>Save a cart, place an order, and keep a record of what you bought.</p>
-        {isLogin && <p className="demo-chip">demo@codealpha.dev · password123</p>}
+    <div className="grid min-h-[calc(100vh-160px)] lg:grid-cols-2">
+      <div className="relative hidden overflow-hidden bg-paper-deep lg:block">
+        <img
+          src="/products/hero-3.jpg"
+          alt="Atelier & Oak clothing"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
+        <blockquote className="absolute bottom-10 left-10 right-10 max-w-md text-paper">
+          <p className="font-serif text-[1.7rem] leading-[1.25]">
+            “Buy fewer things. Choose them carefully, then keep them for a very long time.”
+          </p>
+          <footer className="mt-4 text-[10px] uppercase tracking-[0.22em] text-paper/60">
+            The Atelier &amp; Oak rule
+          </footer>
+        </blockquote>
       </div>
-      <form className="panel" onSubmit={handleSubmit(onSubmit)}>
-        {!isLogin && (
-          <label>
-            Name
-            <input {...field('name')} />
-            {errors.name && <span className="error">{errors.name.message}</span>}
-          </label>
-        )}
-        <label>
-          Email
-          <Mail size={16} aria-hidden="true" /> <input type="email" autoComplete="email" {...field('email')} />
-          {errors.email && <span className="error">{errors.email.message}</span>}
-        </label>
-        <label>
-          Password
-          <Eye size={16} aria-hidden="true" />
-          <input
-            type={showPassword ? 'text' : 'password'}
-            autoComplete={isLogin ? 'current-password' : 'new-password'}
-            {...field('password')}
-          />
-          <EyeOff size={16} aria-hidden="true" onClick={() => setShowPassword(!showPassword)} />
-          {errors.password && <span className="error">{errors.password.message}</span>}
-        </label>
-        {errors.root && <p className="error" aria-live="polite">{errors.root.message}</p>}
-        <button className="btn" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Please wait…' : isLogin ? 'Log in' : 'Create account'}
-        </button>
-        <p className="switch">
-          {isLogin ? (
-            <>
-              New here? <Link to="/register">Create an account</Link>
-            </>
-          ) : (
-            <>
-              Already registered? <Link to="/login">Log in</Link>
-            </>
-          )}
-        </p>
-      </form>
-    </section>
+      <div className="flex items-center justify-center px-5 py-14 sm:px-10">
+        <div className="w-full max-w-md">
+          <AuthPanel mode={mode} />
+        </div>
+      </div>
+    </div>
   );
 }

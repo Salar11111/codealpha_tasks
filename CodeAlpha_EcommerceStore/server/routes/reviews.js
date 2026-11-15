@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Review from '../models/Review.js';
 import Order from '../models/Order.js';
@@ -6,6 +7,22 @@ import { protect } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
+
+async function refreshProductRating(productId) {
+  const [stats] = await Review.aggregate([
+    { $match: { product: new mongoose.Types.ObjectId(productId) } },
+    { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
+  ]);
+  await Product.updateOne(
+    { _id: productId },
+    {
+      $set: {
+        ratingAverage: stats ? Math.round(stats.average * 10) / 10 : 0,
+        ratingCount: stats ? stats.count : 0,
+      },
+    }
+  );
+}
 
 router.get(
   '/product/:productId',
@@ -40,6 +57,7 @@ router.post(
     const existing = await Review.findOne({ product: product._id, user: req.user._id });
     if (existing) return res.status(409).json({ message: 'You already reviewed this product' });
     const review = await Review.create({ product: product._id, user: req.user._id, rating, text });
+    await refreshProductRating(product._id);
     await review.populate('user', 'name');
     res.status(201).json({ review });
   })

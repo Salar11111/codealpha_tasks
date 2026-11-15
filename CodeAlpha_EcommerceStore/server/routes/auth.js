@@ -2,9 +2,11 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
+import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { publicUser } from '../utils/serializers.js';
 
 const router = Router();
 
@@ -24,16 +26,6 @@ function authCookieOptions() {
   };
 }
 
-function publicUser(user) {
-  return {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role || 'customer',
-    savedAddress: user.savedAddress || {},
-  };
-}
-
 function check(req, res) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -41,6 +33,19 @@ function check(req, res) {
     return false;
   }
   return true;
+}
+
+function readAddress(payload = {}) {
+  return {
+    fullName: String(payload.fullName || '').trim(),
+    phone: String(payload.phone || '').trim(),
+    line1: String(payload.line1 || '').trim(),
+    line2: String(payload.line2 || '').trim(),
+    city: String(payload.city || '').trim(),
+    state: String(payload.state || '').trim(),
+    postalCode: String(payload.postalCode || '').trim(),
+    country: String(payload.country || '').trim(),
+  };
 }
 
 router.post(
@@ -85,15 +90,29 @@ router.get(
 );
 
 router.put(
+  '/profile',
+  protect,
+  asyncHandler(async (req, res) => {
+    if (req.body.name !== undefined) {
+      const name = String(req.body.name).trim();
+      if (!name) return res.status(400).json({ message: 'Name cannot be empty' });
+      req.user.name = name;
+    }
+    if (req.body.phone !== undefined) {
+      req.user.phone = String(req.body.phone).trim();
+      req.user.savedAddress.phone = req.user.phone;
+    }
+    await req.user.save();
+    res.json({ user: publicUser(req.user) });
+  })
+);
+
+router.put(
   '/address',
   protect,
   asyncHandler(async (req, res) => {
-    req.user.savedAddress = {
-      fullName: String(req.body.fullName || '').trim(),
-      line1: String(req.body.line1 || '').trim(),
-      city: String(req.body.city || '').trim(),
-      postalCode: String(req.body.postalCode || '').trim(),
-    };
+    req.user.savedAddress = readAddress(req.body);
+    if (req.user.savedAddress.phone) req.user.phone = req.user.savedAddress.phone;
     await req.user.save();
     res.json({ user: publicUser(req.user) });
   })
@@ -104,17 +123,22 @@ router.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
-// Restock notification subscription
+// Restock notification subscription (kept for the product detail page).
 router.post(
   '/restock-notifications',
   asyncHandler(async (req, res) => {
-    const { productId, email } = req.body;
+    const { productId, email, variantId } = req.body;
     if (!productId || !email) {
       return res.status(400).json({ message: 'Product ID and email are required' });
     }
-    // In a real app, we'd store this in a dedicated collection
-    // For now, we'll just log and acknowledge
-    console.log(`Restock notification requested: product ${productId}, email ${email}`);
+    const product = await Product.findById(productId);
+    if (product) {
+      const already = product.restockNotifications.find((entry) => entry.email === email);
+      if (!already) {
+        product.restockNotifications.push({ email, variantId: variantId || undefined });
+        await product.save();
+      }
+    }
     res.json({ ok: true, message: 'You will be notified when this product is back in stock.' });
   })
 );
