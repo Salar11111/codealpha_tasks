@@ -1,6 +1,27 @@
-# CodeAlpha full-stack tasks
+<div align="center">
 
-Three MERN applications built for the CodeAlpha full-stack internship, kept in one repository with shared tooling, tests, and a Docker Compose stack.
+# 🧩 CodeAlpha Full-Stack Tasks
+
+**Three MERN apps, one repository, and the boring parts done properly.**
+
+[![CI](https://github.com/Salar11111/codealpha_tasks/actions/workflows/ci.yml/badge.svg)](https://github.com/Salar11111/codealpha_tasks/actions/workflows/ci.yml)
+![React](https://img.shields.io/badge/React-18-149ECA?logo=react&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-16A34A)
+
+</div>
+
+---
+
+## ✨ Why this repo?
+
+Three internship projects tend to become three abandoned folders. This one keeps them together: a storefront, a social feed and a project board, each with its own client, API, tests, seed data and documentation — plus a single Compose stack that brings them all up with one command.
+
+The interesting parts are the shared conventions. Every API uses JWT auth, bcrypt, Helmet, rate limiting and input sanitising. Every client is a React + Vite app with its own port and proxy. CI checks lint, tests, builds and the Compose image for all three, so a change in one app does not quietly break another.
+
+### 🧩 What's inside
 
 | App | What it does | Local address | API |
 | --- | --- | --- | --- |
@@ -8,9 +29,17 @@ Three MERN applications built for the CodeAlpha full-stack internship, kept in o
 | [Lumen feed](CodeAlpha_SocialMedia) | Posts, comments, likes, follows, alerts | http://localhost:5174 | http://localhost:5002 |
 | [Keel boards](CodeAlpha_ProjectManagement) | Projects, drag-and-drop tasks, comments, live updates | http://localhost:5175 | http://localhost:5003 |
 
-Each app has its own README with the task checklist, API reference, and environment variables.
+- 🛒 **Northline shop** — checkout uses a MongoDB transaction, so the Compose database runs as a replica set.
+- 💬 **Lumen feed** — React Query on the client and Socket.io for alerts.
+- 📋 **Keel boards** — dnd-kit for dragging and Socket.io rooms for live updates.
+- 🧪 **Tests everywhere** — Jest API suites for all three servers, lint for all six packages, production builds for all three clients.
+- 🐳 **One-command startup** — MongoDB replica set, three APIs and three nginx-served clients.
 
-## Screenshots
+Each app has its own README with the task checklist, API reference and environment variables.
+
+---
+
+## 📸 Screenshots
 
 | Northline shop | Lumen feed | Keel boards |
 | --- | --- | --- |
@@ -18,20 +47,9 @@ Each app has its own README with the task checklist, API reference, and environm
 
 ![Stoneware mug product page](CodeAlpha_EcommerceStore/docs/product.png)
 
-## Architecture
+---
 
-```text
-Browser (React + Vite)
-  ├─ /api/*  ──> Express API ──> MongoDB
-  └─ socket.io ──> Socket.io server (social alerts, live boards)
-```
-
-- **Clients** are React 18 apps built with Vite. The shop uses React Query and a cart context, the social app uses React Query plus Socket.io, and the project board uses dnd-kit with Socket.io rooms.
-- **Servers** are Express APIs with Mongoose models, JWT authentication, bcrypt password hashing, Helmet, rate limiting, and input sanitising.
-- **Database** is MongoDB. Checkout uses a transaction, so the shop needs a replica set (a single-node set is enough).
-- **CI** runs ESLint for all servers and clients, the API test suites against a MongoDB replica set, production builds for all three clients, and a Docker Compose image build.
-
-## Quick start with Docker
+## 🚀 Quick start
 
 Requirements: Docker Desktop with Compose.
 
@@ -42,11 +60,11 @@ docker compose exec social-api npm run seed
 docker compose exec projects-api npm run seed
 ```
 
-Then open http://localhost:5173, http://localhost:5174, and http://localhost:5175.
+Then open http://localhost:5173, http://localhost:5174 and http://localhost:5175.
 
 The stack starts a single-node MongoDB replica set (`rs0`), one API per app, and nginx containers that serve each client build and proxy `/api` to its API. Stop it with `docker compose down` (add `-v` to drop the database volume).
 
-## Manual setup
+### Manual setup
 
 Requirements: Node.js 20+ (the root lint tooling needs 20.19+) and MongoDB. The shop needs MongoDB running as a replica set:
 
@@ -80,19 +98,54 @@ npm run seed
 npm run dev
 ```
 
-`npm run dev` starts the API and the Vite client together. See each app's README for its port, database name, and full API list.
+`npm run dev` starts the API and the Vite client together. See each app's README for its port, database name and full API list.
 
-## Demo accounts
+### Demo accounts
 
 Every seeded account uses the password `password123`.
 
 | App | Accounts |
 | --- | --- |
-| Northline shop | `demo@codealpha.dev` (shopper), `admin@codealpha.dev` (add, hide, and ship) |
+| Northline shop | `demo@codealpha.dev` (shopper), `admin@codealpha.dev` (add, hide, ship) |
 | Lumen feed | `demo@codealpha.dev`, `avery@codealpha.dev`, `mina@codealpha.dev` |
 | Keel boards | `demo@codealpha.dev` (board owner), `avery@codealpha.dev` (member) |
 
-## Tests and linting
+---
+
+## 🧱 Architecture
+
+```text
+Browser (React + Vite)
+  ├─ /api/*  ──> Express API ──> MongoDB (replica set)
+  └─ socket.io ──> Socket.io server (social alerts, live boards)
+```
+
+| Layer | Choice |
+| --- | --- |
+| Clients | React 18, Vite, React Query, dnd-kit, Socket.io client |
+| Servers | Express, Mongoose, JWT, bcrypt, Helmet, rate limiting |
+| Database | MongoDB (single-node replica set) |
+| Tests | Jest (APIs), ESLint, production client builds |
+| Tooling | Docker Compose, nginx, GitHub Actions |
+
+---
+
+## 🗂 Repository layout
+
+```text
+CodeAlpha_EcommerceStore/    Northline shop (client, server, docs)
+CodeAlpha_SocialMedia/       Lumen feed (client, server, docs)
+CodeAlpha_ProjectManagement/ Keel boards (client, server, docs)
+.github/workflows/ci.yml     Lint, test and build pipeline
+docker-compose.yml           MongoDB replica set, APIs and web clients
+eslint.config.js             Shared client lint rules
+DEPLOYMENT.md                Production deployment guide
+LICENSE                      MIT license
+```
+
+---
+
+## ✅ Tests & quality
 
 From the repository root:
 
@@ -104,33 +157,34 @@ npm run build        # Production builds for all three clients
 
 The API tests need MongoDB at `MONGO_URI`. To run them against a local replica set:
 
-```bash
-# PowerShell
+```powershell
 $env:MONGO_URI='mongodb://127.0.0.1:27017/codealpha_ecommerce_test?replicaSet=rs0'
 $env:NODE_ENV='test'
 $env:JWT_SECRET='local-test-secret-at-least-32-characters'
 npm --prefix CodeAlpha_EcommerceStore/server test
 ```
 
-Use the same pattern with `codealpha_social_test` and `codealpha_projects_test` for the other two suites. CI (`.github/workflows/ci.yml`) does this automatically with a single-node MongoDB replica set running in Docker.
+Use the same pattern with `codealpha_social_test` and `codealpha_projects_test` for the other two suites. CI runs this automatically with a single-node MongoDB replica set in Docker.
 
-## Deployment
+---
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the production checklist: Docker Compose on a VPS, HTTPS, MongoDB replica sets, uploads, cross-site cookies and CORS, and Render/Railway notes. Each app's `CLIENT_URL` accepts a comma-separated list of origins, and `COOKIE_SAMESITE=none` enables HTTPS split-domain sessions.
+## 🚢 Deployment
 
-## License
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the production checklist: Compose on a VPS, HTTPS, MongoDB replica sets, uploads, cross-site cookies and CORS, plus Render/Railway notes. Each app's `CLIENT_URL` accepts a comma-separated list of origins, and `COOKIE_SAMESITE=none` enables HTTPS split-domain sessions.
 
-[MIT](LICENSE) © 2026 Muhammad Abubakar Salar
+---
 
-## Repository layout
+## 🗺 Roadmap ideas
 
-```text
-CodeAlpha_EcommerceStore/    Northline shop (client, server, docs)
-CodeAlpha_SocialMedia/       Lumen feed (client, server, docs)
-CodeAlpha_ProjectManagement/ Keel boards (client, server, docs)
-.github/workflows/ci.yml     Lint, test, and build pipeline
-docker-compose.yml           MongoDB replica set, APIs, and web clients
-eslint.config.js             Shared client lint rules
-DEPLOYMENT.md                Production deployment guide
-LICENSE                      MIT license
-```
+- 🧪 Client-side test suites alongside the existing API tests
+- 📦 Shared UI package to reduce duplication across the three clients
+- 📚 OpenAPI descriptions for each API
+- 🔁 Refresh-token rotation across all three apps
+
+---
+
+<div align="center">
+
+Three apps, one pipeline. Built for the CodeAlpha full-stack internship.
+
+</div>
