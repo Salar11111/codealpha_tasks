@@ -3,18 +3,18 @@ import { cva } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 export const buttonVariants = cva(
-  'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-200 ease-out disabled:pointer-events-none disabled:opacity-45 active:scale-95 active:bg-surface/50',
+  'ui-btn inline-flex select-none items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-200 ease-out disabled:pointer-events-none disabled:opacity-45',
   {
     variants: {
       variant: {
-        primary: 'bg-ink text-paper',
-        brand: 'bg-brand text-surface',
-        outline: 'border border-ink/25 text-ink',
-        light: 'border border-line bg-surface text-ink',
-        ghost: 'text-ink',
-        link: 'h-auto px-0 text-ink underline decoration-line underline-offset-4',
-        danger: 'border border-brand/30 text-brand',
-        branded: 'bg-brand/10 text-brand border border-brand',
+        primary: 'ui-btn-solid bg-ink text-paper',
+        brand: 'ui-btn-solid bg-brand text-surface',
+        outline: 'ui-btn-quiet border border-ink/25 text-ink',
+        light: 'ui-btn-quiet border border-line bg-surface text-ink',
+        ghost: 'ui-btn-quiet text-ink',
+        link: 'ui-btn-quiet h-auto px-0 text-ink underline decoration-line underline-offset-4',
+        danger: 'ui-btn-quiet border border-brand/30 text-brand',
+        branded: 'ui-btn-quiet bg-brand/10 text-brand border border-brand',
       },
       size: {
         sm: 'h-9 px-4 text-[12.5px]',
