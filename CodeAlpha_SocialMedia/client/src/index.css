@@ -216,7 +216,7 @@ button.nav-link {
   border-radius: var(--r-md);
   padding: var(--space-lg);
 }
-.card:hover,
+.card:not(.alerts-panel):not(.dialog):hover,
 .post.card:hover {
   transform: translateY(-2px);
 }
