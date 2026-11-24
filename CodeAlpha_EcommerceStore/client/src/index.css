@@ -1,5 +1,40 @@
 @import 'tailwindcss';
 
+:root {
+  /* Shared foundation — identical token names and scale across all three apps.
+     Terracotta is this shop's single brand accent; no violet is used. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-btn: 8px;
+  --dur: 160ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ink: #1c1a16;
+  --muted: #756d62;
+  --line: rgba(28, 26, 22, 0.14);
+  --bg: #faf8f5;
+  --surface: #fffdf8;
+  --accent: #a34e2d;
+  --focus: 2px solid var(--accent);
+
+  /* Type scale — body 16/1.55, labels never below 13px. */
+  --t-label: 13px;
+  --t-body: 16px;
+  --t-lg: 20px;
+  --t-xl: 28px;
+  --t-2xl: 40px;
+  --t-3xl: 56px;
+}
+
 @theme {
   --font-sans: 'Geist Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: 'Playfair Display Variable', 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -103,7 +138,6 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -130,8 +164,8 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brand);
-    outline-offset: 3px;
+    outline: var(--focus);
+    outline-offset: 2px;
   }
 
   img {
@@ -149,19 +183,21 @@
   }
 
   .eyebrow {
-    @apply text-[10px] font-medium uppercase tracking-[0.28em] text-muted sm:text-[11px];
+    @apply text-[13px] font-medium uppercase tracking-[0.18em] text-muted;
   }
 
   .label {
-    @apply mb-1.5 block text-[10px] font-medium uppercase tracking-[0.18em] text-muted;
+    @apply mb-1.5 block text-[13px] font-medium uppercase tracking-[0.14em] text-muted;
   }
 
   .field {
     @apply h-11 w-full border border-line bg-surface px-3.5 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30;
+    border-radius: var(--r-btn);
   }
 
   .field-area {
     @apply w-full border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30;
+    border-radius: var(--r-btn);
   }
 
   .hairline {
@@ -169,8 +205,14 @@
   }
 
   .link-quiet {
-    @apply text-ink underline decoration-line decoration-1 underline-offset-4 transition-colors hover:decoration-brand hover:text-brand;
+    @apply text-ink transition-colors hover:text-brand;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+    transition: background-size var(--dur) var(--ease), color var(--dur) var(--ease);
   }
+  .link-quiet:hover { background-size: 100% 1px; }
 
   .no-scrollbar {
     scrollbar-width: none;
@@ -210,25 +252,28 @@
   animation: dialog-out 0.2s ease both;
 }
 
-/* Reveal entrance animation */
+/* No reveal-on-scroll: product cards are visible immediately. */
 .reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.reveal.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-/* Card styles - use data-state instead of group selector */
+/* One card recipe: hairline, soft radius, a 2px lift on interaction. */
 .card {
-  @apply bg-surface border border-line rounded-lg transition-all border-yellow-300/10 hover:border-brand/15 hover:shadow-mellow active:shadow-elevated;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+article:hover > .card,
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
 }
 
 .card-image {
-  @apply overflow-hidden rounded-t-lg transition-transform duration-500;
+  @apply overflow-hidden;
+  border-radius: var(--r-md) var(--r-md) 0 0;
 }
 
 .card-title {
@@ -236,10 +281,70 @@
 }
 
 .card-price {
-  @apply text-[20px] font-serif font-normal text-ink;
+  @apply font-serif font-normal text-ink;
+  font-size: var(--t-lg);
 }
 
-/* Hover effect on card image - use parent hover via direct selector */
-.product-card-wrapper:hover .card-image {
-  transform: scale-[1.02];
+/* Product imagery zooms 1.02–1.03 on hover, never more. */
+.card img:first-child {
+  transition: transform 240ms var(--ease);
+}
+article:hover .card img:first-child {
+  transform: scale(1.03);
+}
+
+/* Shared button foundation. Variants are filled or quiet only. */
+.ui-btn {
+  min-height: 44px;
+  border-radius: var(--r-btn);
+  font-size: var(--t-label);
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.ui-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.ui-btn:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+.ui-btn-solid { background-color: var(--ink); color: var(--surface); border: 1px solid var(--ink); }
+.ui-btn-solid:hover:not(:disabled) { background-color: var(--accent); border-color: var(--accent); color: #fff; }
+.ui-btn-quiet { background-color: transparent; color: var(--ink); border: 1px solid var(--line); }
+.ui-btn-quiet:hover:not(:disabled) { border-color: var(--ink); background-color: rgba(28, 26, 22, 0.04); }
+
+/* Text floor: 16px body, 13px labels, across Tailwind's smallest utilities. */
+html { font-size: 16px; }
+body { font-size: var(--t-body); line-height: 1.55; }
+[class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"],
+[class~="text-[11px]"], [class~="text-[11.5px]"], [class~="text-[12px]"],
+[class~="text-[12.5px]"], .text-xs { font-size: var(--t-label); }
+
+/* Equal content edges at each breakpoint; no horizontal overflow at 390. */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .container-page, .container-wide { padding-left: var(--s-5); padding-right: var(--s-5); }
+}
+@media (max-width: 1024px) {
+  .container-page, .container-wide { padding-left: var(--s-4); padding-right: var(--s-4); }
+}
+@media (max-width: 768px) {
+  .container-page, .container-wide { padding-left: var(--s-3); padding-right: var(--s-3); }
+}
+@media (max-width: 390px) {
+  .ui-btn { width: 100%; }
+  [class~="grid-cols-2"] { grid-template-columns: minmax(0, 1fr); }
+  .container-page, .container-wide { padding-left: var(--s-3); padding-right: var(--s-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal, .fade-rise { opacity: 1 !important; transform: none !important; }
+  article:hover > .card, .card:hover,
+  article:hover .card img:first-child,
+  .ui-btn:hover:not(:disabled) { transform: none !important; }
 }
