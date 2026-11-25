@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -8,9 +9,10 @@ export const DialogClose = DialogPrimitive.Close;
 export const DialogTitle = DialogPrimitive.Title;
 export const DialogDescription = DialogPrimitive.Description;
 
-export function DialogOverlay({ className, ...props }) {
+export const DialogOverlay = forwardRef(function DialogOverlay({ className, ...props }, ref) {
   return (
     <DialogPrimitive.Overlay
+      ref={ref}
       className={cn(
         'dialog-overlay fixed inset-0 z-50 bg-ink/45 backdrop-blur-[2px]',
         className
@@ -18,7 +20,7 @@ export function DialogOverlay({ className, ...props }) {
       {...props}
     />
   );
-}
+});
 
 export function DialogContent({ className, children, showClose = true, ...props }) {
   return (
