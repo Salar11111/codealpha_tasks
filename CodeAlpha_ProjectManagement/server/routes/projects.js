@@ -269,7 +269,13 @@ router.patch(
       siblings.splice(position, 0, task);
       const updates = taskPositionUpdates(siblings, column);
       if (fromColumn !== column) {
-        const left = await Task.find({ project: project._id, column: fromColumn }).sort({ position: 1 });
+        // Exclude the moved card: its database column has not changed yet, so
+        // including it would write it back into the old column below.
+        const left = await Task.find({
+          project: project._id,
+          column: fromColumn,
+          _id: { $ne: task._id },
+        }).sort({ position: 1 });
         updates.push(...taskPositionUpdates(left, fromColumn));
         await logActivity(req, project, `${req.user.name} moved “${task.title}” to ${column}`);
       }
