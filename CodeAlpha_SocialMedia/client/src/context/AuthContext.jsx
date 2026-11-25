@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { api } from '../api/client';
+import { api, clearSession, hasSession, setSession } from '../api/client';
 import { io } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || undefined;
@@ -12,10 +12,27 @@ export function AuthProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
+    // Restore only sessions created in this browser; anonymous visits never
+    // call the protected /auth/me endpoint.
+    if (!hasSession()) {
+      setUser(null);
+      setLoading(false);
+      return undefined;
+    }
+    let active = true;
     api('/auth/me')
-      .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (active) setUser(data.user);
+      })
+      .catch(() => {
+        if (active) setUser(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -38,16 +55,19 @@ export function AuthProvider({ children }) {
       notifications,
       async login(email, password) {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        setSession();
         setUser(data.user);
         return data.user;
       },
       async register(name, username, email, password) {
         const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ name, username, email, password }) });
+        setSession();
         setUser(data.user);
         return data.user;
       },
       async logout() {
         await api('/auth/logout', { method: 'POST' }).catch(() => {});
+        clearSession();
         setUser(null);
         setNotifications([]);
       },
