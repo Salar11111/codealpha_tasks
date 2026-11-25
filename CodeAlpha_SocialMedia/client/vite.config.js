@@ -1,14 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const port = Number(process.env.CLIENT_PORT || 5174);
+const apiTarget = process.env.API_TARGET || 'http://localhost:5002';
+
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5174,
+    port,
     proxy: {
-      '/api': 'http://localhost:5002',
-      '/uploads': 'http://localhost:5002',
-      '/socket.io': { target: 'http://localhost:5002', ws: true },
+      '/api': apiTarget,
+      '/uploads': apiTarget,
+      '/socket.io': { target: apiTarget, ws: true },
     },
   },
 });
