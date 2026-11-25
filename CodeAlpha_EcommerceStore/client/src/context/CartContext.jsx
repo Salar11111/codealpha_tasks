@@ -269,7 +269,6 @@ export function CartProvider({ children }) {
       refreshCart,
       applyServer,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [items, summary, count, loading, user, drawerOpen, openDrawer, closeDrawer]
   );
 
