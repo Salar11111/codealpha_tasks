@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { api } from '../api/client';
@@ -8,7 +8,6 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Wishlist() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['wishlist'],
     queryFn: () => api('/wishlist').then((result) => result.products),
