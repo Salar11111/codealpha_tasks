@@ -71,11 +71,6 @@ export default function Shop() {
     setParams(next, { replace: true });
   }
 
-  function toggleParam(key, value) {
-    if (params.get(key) === value) setParam(key, value === params.get(key) ? '' : value);
-    else setParam(key, value);
-  }
-
   function clearAll() {
     setParams(new URLSearchParams(), { replace: true });
   }
